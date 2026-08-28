@@ -1,246 +1,1123 @@
 # ⚖️ Legal Metrology Compliance System
 
-### AI-Powered Packaged Commodity Compliance & Inspection Platform
+### AI-Assisted Packaged Commodity Compliance & Digital Inspection Platform
 
-> An intelligent software system that analyzes packaged commodity images, extracts mandatory declarations, determines applicable Legal Metrology requirements, identifies potential non-compliance, and assists enforcement officers in generating digital inspection reports.
-
----
-
-## 📌 Table of Contents
-
-- [About the Project](#-about-the-project)
-- [Problem Statement](#-problem-statement)
-- [Our Solution](#-our-solution)
-- [Project Directory Structure](#-project-directory-structure)
-- [System Workflow](#-system-workflow)
-- [System Architecture](#-system-architecture)
-- [Module Breakdown](#-module-breakdown)
-- [Technology Stack](#-technology-stack)
-- [Getting Started](#-getting-started)
-- [API Overview](#-api-overview)
-- [Testing](#-testing)
-- [License](#-license)
+> A unified mobile and web platform that helps citizens and Legal Metrology officers scan packaged commodities, extract package declarations using AI/OCR, evaluate applicable compliance requirements using a rule engine, collect evidence, manage inspections and complaints, and generate digital reports.
 
 ---
 
-## 📖 About the Project
+## 🇮🇳 Smart India Hackathon
 
-Packaged commodities sold in India are required to carry various mandatory declarations under the **Legal Metrology Act, 2009** and the **Legal Metrology (Packaged Commodities) Rules, 2011**, subject to applicability and prescribed exceptions.
+### Problem Statement
 
-Examples of important package information include:
-- Product identity
+Software System to check compliance of Packaged Commodities under Legal Metrology (Packaged Commodities) Rules, 2011 by scanning products, images and labels.
+
+---
+
+# 📌 1. Project Overview
+
+Packaged commodities are widely sold through retail stores, supermarkets and e-commerce platforms across India.
+
+Under the Legal Metrology framework, applicable packaged commodities are required to carry prescribed declarations such as:
+
+- Product/commodity information
 - Net quantity
 - Maximum Retail Price (MRP)
-- Manufacturer / Packer / Importer details & address
-- Date of manufacture / packing / import
-- Consumer care information & contact details
-- Country of origin
+- Manufacturer/Packer/Importer details
+- Address
+- Date-related declarations
+- Consumer care information
+- Other applicable declarations
 
-Our system automates and assists this inspection process using:
-- **Computer Vision & Image Preprocessing**
-- **Optical Character Recognition (OCR)**
-- **Rule-based Legal Engine**
-- **Product & Exemption Classification**
-- **Evidence Management & Digital Sign-off**
+Manual inspection of a large number of products can be time-consuming and resource-intensive.
 
----
+Our solution provides an AI-assisted digital platform that helps automate the initial screening and organization of package compliance checks.
 
-## ❗ Problem Statement
+The system combines:
 
-> Develop a software application capable of scanning packaged commodity labels, product images, and product information to automatically assess compliance with the Legal Metrology (Packaged Commodities) Rules, 2011.
-
-The system helps enforcement officers identify potential issues such as:
-- Missing mandatory declarations
-- Incorrect or incomplete MRP formatting
-- Readability & font height non-compliance
-- Exemption status misclassification
-- Omission of manufacturer/importer or consumer care details
-
-*Note: The final legal decision remains with the authorized enforcement process/officer.*
+- 📷 Computer Vision
+- 📝 OCR
+- 🤖 AI-assisted information extraction
+- ⚖️ Rule-based compliance validation
+- 📱 Mobile inspection application
+- 🖥 Government dashboard
+- 📄 Digital reporting
+- 🗄 Inspection history
+- 📝 Citizen complaints
 
 ---
 
-## 💡 Our Solution
+# ❗️ 2. Problem
 
-We propose a modular, scalable monorepo platform architecture:
+## Existing Challenge
+
+An enforcement officer may need to manually inspect a package and verify multiple declarations.
+
+For example:
 
 ```text
-📦 Package Label Image
-     ↓
-📱 mobile/ (Field Inspection Capture) / 🖥️ dashboard/ (Web Batch Upload)
-     ↓
-⚙️ backend/ (API Gateway & Queue Dispatch)
-     ↓
-🤖 ai/ (Image Preprocessing -> OCR -> Key-Value Field Extraction)
-     ↓
-⚖️ rule_engine/ (Applicability Check -> Legal Metrology Rule Validation)
-     ↓
-🗄️ database/ (Persistence of Session & Bounding Box Evidence)
-     ↓
-👮 Officer Verification & Audit
-     ↓
-📄 reports/ (Automated PDF Inspection Report & Violation Notice)
-```
+📦 Product
+   ↓
+Read label manually
+   ↓
+Find MRP
+   ↓
+Find net quantity
+   ↓
+Find manufacturer
+   ↓
+Find date
+   ↓
+Check applicable requirements
+   ↓
+Record findings
+   ↓
+Take evidence
+   ↓
+Prepare report
 
----
+AI-Assisted Legal Metrology Compliance & Inspection Platform
 
-## 📁 Project Directory Structure
 
-```text
-legal-metrology/
+📷 Package Image
+       ↓
+🤖 AI / OCR
+       ↓
+📝 Declaration Extraction
+       ↓
+📦 Product Classification
+       ↓
+⚖️ Applicability Engine
+       ↓
+📜 Legal Rule Engine
+       ↓
+🔍 Compliance Validation
+       ↓
+🟢 PASS / 🟡 REVIEW / 🔴 POTENTIAL ISSUE
+       ↓
+📷 Evidence
+       ↓
+👮 Officer Verification
+       ↓
+📄 Digital Report
+
+
+4. Main Objective
+
+The objective is to assist enforcement personnel and citizens by providing a digital system capable of:
+
+Scanning package images
+Extracting declarations
+Identifying potentially missing declarations
+Checking applicable requirements
+Performing rule-based validation
+Assisting readability/font analysis
+Collecting evidence
+Maintaining inspection history
+Managing complaints
+Generating digital reports
+Providing a centralized government dashboard
+
+
+Mobile + Web Architecture
+The project contains two frontend applications.
+
+
+PLATFORM
+                       │
+          ┌────────────┴────────────┐
+          │                         │
+       📱 MOBILE                 🖥 WEB
+          │                         │
+   React Native + TS          React + TypeScript
+          │                         │
+   ┌──────┴──────┐                  │
+   │             │                  │
+👤 Citizen    👮 Officer            │
+   │             │                  │
+   └──────┬──────┘                  │
+          │                         │
+          └──────────┬──────────────┘
+                     ↓
+                🔗 REST API
+                     ↓
+                 ⚙️ FastAPI
+                     │
+       ┌─────────────┼─────────────┐
+       ↓             ↓             ↓
+    🤖 AI        ⚖️ RULES       🗄 DB
+    ENGINE        ENGINE       PostgreSQL
+       │             │             │
+       └─────────────┼─────────────┘
+                     ↓
+              Compliance Result
+
+
+
+6. User Roles
+👤 Citizen
+
+Citizens can:
+
+Scan a product
+View extracted package information
+View preliminary compliance information
+Understand potential issues
+Submit complaints
+Track complaints
+
+
+Citizen Workflow
+
+📷 Scan Product
+      ↓
+🤖 AI Analysis
+      ↓
+🔍 Compliance Screening
+      ↓
+🟢 / 🟡 / 🔴 Result
+      ↓
+📝 Submit Complaint
+      ↓
+👮 Officer Review
+
+
+Legal Metrology Officer
+
+Officers can:
+
+Login securely
+Capture package images
+Create inspections
+Review AI/OCR results
+Check applicable requirements
+Review potential violations
+Capture evidence
+Enter physical measurements
+Add observations
+Verify findings
+Generate reports
+View inspection history
+
+
+Officer Workflow
+
+👮 Officer Login
+      ↓
+📷 Scan Package
+      ↓
+🤖 AI Analysis
+      ↓
+⚖️ Rule Validation
+      ↓
+🔍 Findings
+      ↓
+📷 Evidence
+      ↓
+👮 Verification
+      ↓
+📄 Inspection Report
+
+
+Administrator
+
+Administrators can:
+
+Manage users
+Manage officers
+Monitor inspections
+View complaints
+View potential violations
+View products
+Monitor analytics
+Manage rule versions
+Monitor system activity
+
+7. Package Scanning
+
+The package itself is the primary source for compliance analysis.
+
+The application supports:
+
+Front package image
+Back package image
+Side package image
+Label image
+Additional evidence images
+
+QR / Barcode
+QR/barcode scanning is an optional supporting feature.
+It can help with:
+Product identification
+Quick product lookup
+Linking to an existing product record
+However:
+The system does not depend on QR codes for compliance checking.
+The main workflow is:
+📦 Package
+    ↓
+📷 Image
+    ↓
+🤖 OCR + Computer Vision
+    ↓
+Compliance Analysis
+
+
+8. AI / OCR Pipeline
+
+The AI pipeline converts package images into structured information.
+                 📷 IMAGE
+                    ↓
+            Image Quality Check
+                    ↓
+             Preprocessing
+                    ↓
+          Perspective Correction
+                    ↓
+          Text Region Detection
+                    ↓
+                   📝 OCR
+                    ↓
+          Text Normalization
+                    ↓
+        Declaration Extraction
+                    ↓
+          Structured Product Data
+                    ↓
+              ⚖️ Rule Engine
+
+9. Declaration Extraction
+
+The system attempts to identify information such as:
+Product Name
+MRP
+Net Quantity
+Manufacturer
+Packer
+Importer
+Address
+Date
+Consumer Care Details
+Other Visible Declarations
+
+Example:
+{
+  "product_name": "ABC Biscuits",
+  "mrp": "₹50",
+  "net_quantity": "500 g",
+  "manufacturer": "ABC Foods Pvt Ltd",
+  "date": "06/2026",
+  "consumer_care": "1800-XXXX-XXXX"
+}
+
+
+10. Applicability Engine
+This is a critical component of the system.
+The platform should not blindly apply every rule to every product.
+Instead:
+Product Information
+        ↓
+Product / Package Category
+        ↓
+Applicable Conditions
+        ↓
+Exceptions / Exemptions
+        ↓
+Applicable Requirements
+The applicability engine determines which configured requirements need to be evaluated for the particular product/package scenario.
+
+
+
+
+11. Legal Rule Engine
+The legal rules are maintained separately from the AI system.
+This makes the system easier to maintain and update.
+AI answers:
+"What information can be extracted from the package?"
+Applicability Engine answers:
+"Which requirements apply?"
+Rule Engine answers:
+"What does the applicable requirement require?"
+Compliance Engine answers:
+"Does the extracted information satisfy the configured requirement?"
+Officer answers:
+"Is the finding verified?"
+🔍 12. Compliance Engine
+The compliance engine receives:
+Extracted Data
+      +
+Applicable Requirements
+      ↓
+Compliance Validators
+      ↓
+Findings
+The system can produce:
+🟢 PASS
+No potential issue was identified by the configured checks.
+🟡 REVIEW
+The system could not confidently determine compliance and requires human verification.
+🔴 POTENTIAL ISSUE
+The configured checks identified a potential non-compliance that should be reviewed.
+📏 13. Font & Readability Analysis
+Computer Vision can assist in analyzing:
+Text visibility
+Text regions
+Contrast
+Approximate character size
+Readability
+Placement-related characteristics
+However, a normal photograph may not provide reliable physical scale.
+Therefore:
+Reliable Measurement
+       ↓
+Automated Check
+
+Uncertain Measurement
+       ↓
+🟡 REVIEW REQUIRED
+       ↓
+👮 Officer Verification
+The system should not automatically declare a legal violation solely from an uncertain image measurement.
+📷 14. Evidence Management
+For every inspection, the officer can attach:
+Package photographs
+Label photographs
+Additional evidence
+Measurement information
+Officer observations
+Example:
+Inspection
+   │
+   ├── 📷 Front Image
+   ├── 📷 Back Image
+   ├── 📷 Label Image
+   ├── 📏 Measurement
+   ├── 📝 Observation
+   └── 🔍 Compliance Finding
+👮 15. Human-in-the-Loop Verification
+The system is designed as an AI-assisted inspection system, not an autonomous enforcement system.
+                 🤖 AI
+                  ↓
+          Potential Finding
+                  ↓
+              📷 Evidence
+                  ↓
+             👮 Officer
+                  ↓
+        ┌─────────┴─────────┐
+        ↓                   ↓
+     Confirm              Reject
+        │                   │
+        └─────────┬─────────┘
+                  ↓
+          Final Inspection
+                  ↓
+             📄 Report
+📄 16. Digital Reports
+The system can generate inspection/compliance reports containing:
+Inspection ID
+Product details
+Date/time
+Location
+Package images
+Extracted declarations
+Applicable requirements
+Findings
+Evidence
+Measurements
+Officer observations
+Verification status
+Reports can be exported as:
+PDF
+Editable format
+🖥 17. Government Dashboard
+The dashboard provides centralized monitoring.
+              🖥 DASHBOARD
+                    │
+       ┌────────────┼────────────┐
+       ↓            ↓            ↓
+   📋 Inspections 📦 Products  ⚠️ Issues
+       │            │            │
+       ├────────────┼────────────┤
+       ↓            ↓            ↓
+   📝 Complaints 👮 Officers   📄 Reports
+                    │
+                    ↓
+                 📊 Analytics
+
+
+
+📊 18. Dashboard Example
+
+┌──────────────────────────────────────────────┐
+│       LEGAL METROLOGY DASHBOARD              │
+├──────────────────────────────────────────────┤
+│                                              │
+│  INSPECTIONS     POTENTIAL ISSUES            │
+│      245               38                    │
+│                                              │
+│  COMPLAINTS      PRODUCTS SCANNED            │
+│       21               520                   │
+│                                              │
+├──────────────────────────────────────────────┤
+│                                              │
+│  COMPLIANCE STATUS                            │
+│                                              │
+│  🟢 PASS                 207                 │
+│  🟡 REVIEW                25                 │
+│  🔴 POTENTIAL ISSUE       13                 │
+│                                              │
+├──────────────────────────────────────────────┤
+│              RECENT INSPECTIONS              │
+│                                              │
+│  ABC Foods       🟢 PASS                     │
+│  XYZ Soap        🟡 REVIEW                   │
+│  PQR Oil         🔴 POTENTIAL ISSUE          │
+│                                              │
+└──────────────────────────────────────────────┘
+
+
+🏗 19. System Architecture
+                         USERS
+                           │
+             ┌─────────────┴─────────────┐
+             │                           │
+          📱 MOBILE                   🖥 WEB
+             │                           │
+     React Native + TS             React + TS
+             │                           │
+             └─────────────┬─────────────┘
+                           │
+                       REST API
+                           │
+                           ↓
+                    ⚙️ FASTAPI BACKEND
+                           │
+       ┌───────────────────┼───────────────────┐
+       │                   │                   │
+       ↓                   ↓                   ↓
+  🤖 AI SERVICE       ⚖️ RULE ENGINE      🗄 PostgreSQL
+       │                   │                   │
+       │                   │                   │
+       ↓                   ↓                   ↓
+   OpenCV             Applicability       Users
+   PaddleOCR          Validators          Products
+   Extraction         Exemptions          Inspections
+   Detection          Rule Versions       Complaints
+                                           Evidence
+                                           Reports
+       │                   │
+       └──────────┬────────┘
+                  ↓
+           Compliance Result
+                  │
+                  ↓
+            👮 Verification
+                  │
+                  ↓
+             📄 Report
+
+
+
+🛠 20. Technology Stack
+Layer
+Technology
+📱 Mobile
+React Native
+📝 Mobile Language
+TypeScript
+🖥 Web
+React.js
+📝 Web Language
+TypeScript
+🎨 Web UI
+Tailwind CSS
+⚙️ Backend
+FastAPI
+🐍 Backend Language
+Python
+🤖 OCR
+PaddleOCR
+👁 Computer Vision
+OpenCV
+⚖️ Rule Engine
+Python
+🗄 Database
+PostgreSQL
+🔐 Authentication
+JWT
+🔗 API
+REST
+📄 Reports
+HTML/PDF
+🐳 Deployment
+Docker
+
+
+📁 21. Project Structure
+
+legal-metrology-compliance/
 │
-├── 📱 mobile/               # Mobile App (Field Inspection Officer interface)
-│   ├── src/                 # Screen components, camera logic, offline sync
-│   ├── assets/              # App icons, static resources
-│   ├── package.json         # Node dependencies
-│   └── tsconfig.json        # TypeScript configuration
+├── 📱 mobile/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── screens/
+│   │   │   ├── auth/
+│   │   │   ├── citizen/
+│   │   │   ├── officer/
+│   │   │   ├── scanner/
+│   │   │   └── reports/
+│   │   ├── navigation/
+│   │   ├── services/
+│   │   ├── store/
+│   │   ├── utils/
+│   │   └── theme/
+│   │
+│   ├── assets/
+│   ├── app.json
+│   ├── package.json
+│   └── tsconfig.json
 │
-├── 🖥️ dashboard/            # Web Dashboard (Admin & Senior Officer portal)
-│   ├── src/                 # React/Next.js dashboard components & analytics
-│   ├── public/              # Static public assets
-│   ├── package.json         # Web dependencies
-│   └── tsconfig.json        # TypeScript configuration
+├── 🖥 dashboard/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   ├── hooks/
+│   │   ├── routes/
+│   │   ├── utils/
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   │
+│   ├── public/
+│   ├── package.json
+│   └── tsconfig.json
 │
-├── 🔗 shared/               # Shared Utilities & Interfaces
-│   ├── types/               # TypeScript interfaces & types
-│   ├── constants/           # Legal constants & mandatory field lists
-│   └── validation/          # Common schema validation rules
+├── 🔗 shared/
+│   ├── types/
+│   │   ├── user.ts
+│   │   ├── product.ts
+│   │   ├── scan.ts
+│   │   ├── compliance.ts
+│   │   ├── inspection.ts
+│   │   ├── complaint.ts
+│   │   └── report.ts
+│   │
+│   ├── constants/
+│   │   ├── roles.ts
+│   │   ├── statuses.ts
+│   │   └── endpoints.ts
+│   │
+│   └── index.ts
 │
-├── ⚙️ backend/              # Core API Server (Python FastAPI)
-│   ├── app/                 # FastAPI routes, ORM schemas, controller logic
-│   └── requirements.txt     # Python dependencies
+├── ⚙️ backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   ├── database/
+│   │   └── core/
+│   │
+│   ├── tests/
+│   └── requirements.txt
 │
-├── 🤖 ai/                   # AI & Vision Processing Pipeline
-│   ├── ocr/                 # OCR detection & text bounding box engine
-│   ├── extraction/          # Named entity parsing & structured declaration extraction
-│   └── image_processing/    # Image enhancement, deskewing, binarization
+├── 🤖 ai/
+│   ├── preprocessing/
+│   ├── ocr/
+│   ├── extraction/
+│   ├── detection/
+│   └── inference.py
 │
-├── ⚖️ rule_engine/          # Legal Metrology Compliance Engine
-│   ├── rules/               # Packaged Commodity Rules 2011 validators
-│   ├── applicability/       # Small-pack & net quantity exemption checkers
-│   └── validators/          # Font size, numeral height, & format checkers
+├── ⚖️ rule_engine/
+│   ├── rules/
+│   ├── applicability/
+│   ├── validators/
+│   └── compliance_engine.py
 │
-├── 🗄️ database/             # Relational Database Schemas & Migrations
-│   ├── schema.sql           # PostgreSQL schema DDL
-│   └── README.md            # Database documentation
+├── 🗄 database/
+│   ├── migrations/
+│   ├── seed/
+│   └── schema.sql
 │
-├── 📄 reports/              # PDF & Digital Inspection Notice Generators
-│   ├── generator.py         # PDF report generator logic
-│   └── templates/           # HTML/Jinja2 report templates
+├── 📄 reports/
+│   ├── templates/
+│   └── generator/
 │
-├── 🧪 tests/                # Test Suites
-│   ├── test_ai_pipeline.py  # AI & OCR tests
-│   ├── test_rule_engine.py  # Compliance rule tests
-│   └── test_api.py          # API route integration tests
+├── 🧪 tests/
+│   ├── integration/
+│   ├── api/
+│   ├── ai/
+│   └── rule_engine/
 │
-├── 📚 docs/                 # Detailed Documentation
-│   └── WORKFLOW.md          # End-to-end system workflow guide
+├── 📚 docs/
+│   ├── architecture/
+│   ├── api/
+│   └── legal/
 │
-├── .env.example             # Configuration environment variables template
-├── .gitignore               # Git ignore rules
-└── README.md                # Project overview documentation
-```
+├── .env.example
+├── .gitignore
+├── docker-compose.yml
+├── README.md
+└── LICENSE
 
----
 
-## 🔄 System Workflow
+🗄 22. Database Design
+Main entities:
+                    USERS
+                      │
+          ┌───────────┴───────────┐
+          ↓                       ↓
+      INSPECTIONS            COMPLAINTS
+          │
+    ┌─────┼─────────────┐
+    ↓     ↓             ↓
+PRODUCT IMAGES      EVIDENCE
+    │
+    ↓
+OCR RESULTS
+    │
+    ↓
+COMPLIANCE CHECKS
+    │
+    ↓
+VIOLATIONS / FINDINGS
+    │
+    ↓
+OFFICER VERIFICATION
+    │
+    ↓
+REPORT
+Main tables
+users
+products
+inspections
+package_images
+extracted_declarations
+rules
+rule_conditions
+compliance_checks
+violations
+evidence
+physical_measurements
+officer_verifications
+complaints
+reports
+audit_logs
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Officer as 👮 Enforcement Officer
-    participant Mobile as 📱 Mobile App (mobile/)
-    participant API as ⚙️ Backend API (backend/)
-    participant AI as 🤖 AI Module (ai/)
-    participant RE as ⚖️ Rule Engine (rule_engine/)
-    participant DB as 🗄️ Database (database/)
-    participant Report as 📄 Reports (reports/)
 
-    Officer->>Mobile: 1. Capture package label photos
-    Mobile->>API: 2. Upload inspection payload & images
-    API->>AI: 3. Preprocess image & run OCR + Text Parsing
-    AI-->>API: 4. Extracted declarations (MRP, Net Qty, Date, Mfd, etc.)
-    API->>RE: 5. Evaluate against Legal Metrology Rules (PCR 2011)
-    RE-->>API: 6. Compliance Status (PASS / POTENTIAL_ISSUE + Violations)
-    API->>DB: 7. Store session record & evidence bounding boxes
-    API-->>Mobile: 8. Return extracted data overlay & violation highlights
-    Officer->>Mobile: 9. Review evidence, edit if needed, and confirm
-    Mobile->>API: 10. Submit final officer verification
-    API->>Report: 11. Generate PDF Inspection Report
-    Report-->>API: 12. Digital report ready
-```
+🔗 23. API Structure
+Authentication
+POST /api/auth/login
+POST /api/auth/register
+GET  /api/auth/me
+Scanning
+POST /api/scans
+GET  /api/scans/{scan_id}
+Products
+POST /api/products
+GET  /api/products
+GET  /api/products/{product_id}
+Compliance
+POST /api/compliance/check
+GET  /api/compliance/{inspection_id}
+Inspections
+POST /api/inspections
+GET  /api/inspections
+GET  /api/inspections/{inspection_id}
+PUT  /api/inspections/{inspection_id}
+Complaints
+POST /api/complaints
+GET  /api/complaints
+GET  /api/complaints/{complaint_id}
+Reports
+POST /api/reports
+GET  /api/reports/{report_id}
 
-For full details on each stage, refer to [docs/WORKFLOW.md](file:///d:/SIH_project_2026/docs/WORKFLOW.md).
 
----
+🔐 24. Authentication & Security
+The platform uses role-based access.
+                 🔐 AUTHENTICATION
+                        │
+          ┌─────────────┼─────────────┐
+          ↓             ↓             ↓
+       👤 CITIZEN    👮 OFFICER    🏛 ADMIN
+Security mechanisms include:
+JWT authentication
+Password hashing
+Role-based authorization
+Secure token storage
+HTTPS
+API validation
+Audit logging
+Controlled evidence access
 
-## 🛠️ Technology Stack
 
-| Layer | Technologies |
-| :--- | :--- |
-| **Mobile App** | React Native / TypeScript, Expo Camera, Offline SQLite |
-| **Web Dashboard** | React.js / Next.js, Tailwind CSS / Vanilla CSS |
-| **Backend API** | Python, FastAPI, Uvicorn, Pydantic, SQLAlchemy |
-| **AI / Computer Vision** | OpenCV, PyTesseract / EasyOCR, Transformers, LayoutLM |
-| **Rule Engine** | Python custom rule evaluation pipeline |
-| **Database** | PostgreSQL, PostGIS (Geospatial inspection mapping) |
-| **Reports** | WeasyPrint / ReportLab (PDF Generation), Jinja2 HTML Templates |
+🚀 25. Installation
+Clone Repository
+git clone <repository-url>
 
----
+cd legal-metrology-compliance
+📱 Mobile
+cd mobile
 
-## 🚀 Getting Started
+npm install
 
-### Prerequisites
-- Node.js (>= v18)
-- Python (>= 3.10)
-- PostgreSQL (>= 14)
+npx expo start
+🖥 Dashboard
+cd dashboard
 
-### Setup Instructions
+npm install
 
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/chandumaddula/SIH_project_2026.git
-   cd SIH_project_2026
-   ```
+npm run dev
+⚙️ Backend
+cd backend
 
-2. **Set up Environment Variables**:
-   ```bash
-   cp .env.example .env
-   ```
+python -m venv venv
+Windows
+venv\Scripts\activate
+Linux / macOS
+source venv/bin/activate
+Install dependencies:
+pip install -r requirements.txt
+Run FastAPI:
+uvicorn app.main:app --reload
 
-3. **Backend & AI Setup**:
-   ```bash
-   cd backend
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
 
-4. **Shared Types Setup**:
-   ```bash
-   cd ../shared
-   npm install
-   npm run build
-   ```
+🔐 26. Environment Variables
+Create a .env file in the backend.
+Example:
+DATABASE_URL=postgresql://username:password@localhost:5432/legal_metrology
 
-5. **Running backend API**:
-   ```bash
-   cd ../backend
-   uvicorn app.main:app --reload --port 8000
-   ```
+JWT_SECRET=your_secret_key
 
----
+AI_SERVICE_URL=http://localhost:8001
 
-## 🧪 Testing
+STORAGE_URL=your_storage_url
+Do not commit .env.
+Use:
+.env.example
 
-Run test suites using Python `unittest` or `pytest`:
 
-```bash
-python -m unittest discover tests
-```
+for configuration documentation.
 
----
 
-## 📄 License
+🎯 27. MVP
+The first working prototype should focus on the following flow:
+             📱 MOBILE
+                 │
+                 ↓
+          📷 Capture Package
+                 │
+                 ↓
+              📤 Upload
+                 │
+                 ↓
+             ⚙️ FASTAPI
+                 │
+                 ↓
+              🤖 OCR
+                 │
+                 ↓
+        📝 Extract Information
+                 │
+                 ↓
+         ⚖️ Applicability Check
+                 │
+                 ↓
+            📜 Rule Engine
+                 │
+                 ↓
+          🔍 Compliance Check
+                 │
+          ┌──────┼──────┐
+          ↓      ↓      ↓
+         🟢     🟡     🔴
+        PASS   REVIEW  ISSUE
+                        │
+                        ↓
+                    📷 Evidence
+                        │
+                        ↓
+                   👮 Officer
+                   Verification
+                        │
+                        ↓
+                    📄 Report
+                        │
+                        ↓
+                 🖥 Dashboard
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+
+🏆 28. SIH Demonstration Scenario
+Scenario 1 — Compliant Package
+📷 Scan
+  ↓
+🤖 OCR
+  ↓
+📝 Extract declarations
+  ↓
+⚖️ Determine applicable requirements
+  ↓
+📜 Validate
+  ↓
+🟢 PASS
+  ↓
+📄 Generate Report
+Scenario 2 — Potential Issue
+📷 Scan
+  ↓
+🤖 OCR
+  ↓
+📝 Extract declarations
+  ↓
+⚖️ Determine applicable requirements
+  ↓
+📜 Validate
+  ↓
+🔴 POTENTIAL ISSUE
+  ↓
+📷 Evidence
+  ↓
+👮 Officer Review
+  ↓
+✅ Confirm / ❌ Reject
+  ↓
+📄 Final Report
+Scenario 3 — Citizen Complaint
+👤 Citizen
+    ↓
+📷 Scan
+    ↓
+🤖 AI Analysis
+    ↓
+🟡 / 🔴 Potential Issue
+    ↓
+📝 Submit Complaint
+    ↓
+👮 Officer
+    ↓
+📋 Inspection
+    ↓
+📷 Evidence
+    ↓
+⚖️ Verification
+    ↓
+📄 Report
+
+
+📈 29. Impact
+👮 Enforcement Officers
+The platform can help:
+Reduce repetitive manual data entry
+Speed up initial screening
+Organize evidence
+Standardize inspection records
+Search previous inspections
+Generate reports faster
+👤 Citizens
+The platform can help citizens:
+Understand package information
+Identify potential issues
+Submit structured complaints
+Track complaint status
+🏛 Government
+The platform can provide:
+Centralized inspection records
+Compliance analytics
+Complaint monitoring
+Product history
+Potential violation trends
+Better inspection planning
+
+
+🌍 30. Scalability
+The architecture can scale from a hackathon prototype to larger deployments.
+                 MVP
+                  ↓
+             Pilot District
+                  ↓
+             State Level
+                  ↓
+            Multi-State
+                  ↓
+           National Scale
+Possible future capabilities:
+Multilingual OCR
+Offline inspection
+GIS-based inspection planning
+Advanced computer vision
+Large product repository
+Analytics
+Integration with government systems
+E-commerce listing analysis
+Automated rule-version management
+
+
+⚠️ 31. Limitations
+AI-based package analysis can be affected by:
+Blurry images
+Poor lighting
+Reflections
+Curved packages
+Small text
+Decorative fonts
+Occluded labels
+Multiple languages
+Incomplete package views
+Therefore the system uses:
+🟢 PASS
+🟡 REVIEW REQUIRED
+🔴 POTENTIAL ISSUE
+instead of treating every AI output as a final legal decision.
+
+
+🧠 32. Key Design Principle
+The most important architecture decision is the separation between AI and legal rules.
+
+                    📦 PACKAGE
+                         │
+                         ↓
+                       🤖 AI
+                "What can we see?"
+                         │
+                         ↓
+                  📝 EXTRACTED DATA
+                         │
+                         ↓
+                ⚖️ APPLICABILITY
+              "Which requirements apply?"
+                         │
+                         ↓
+                    📜 RULE ENGINE
+                  "What is required?"
+                         │
+                         ↓
+                  🔍 COMPLIANCE
+             "Does it satisfy them?"
+                         │
+                         ↓
+                     📷 EVIDENCE
+                         │
+                         ↓
+                    👮 OFFICER
+                 "Verify finding"
+                         │
+                         ↓
+                      📄 REPORT
+This makes the system:
+Explainable
+Maintainable
+Testable
+Easier to update
+Suitable for human verification
+
+
+🛣 33. Development Roadmap
+Phase 1 — Foundation
+Repository setup
+React Native application
+React dashboard
+FastAPI backend
+PostgreSQL
+Authentication
+Phase 2 — Scanner
+Camera
+Image upload
+Image review
+QR/barcode support
+Image storage
+Phase 3 — AI
+Image preprocessing
+OCR
+Text extraction
+Declaration extraction
+Confidence scoring
+Phase 4 — Compliance
+Rule database
+Applicability engine
+Exemption handling
+Declaration validation
+Readability analysis
+Compliance results
+Phase 5 — Inspection
+Evidence management
+Officer verification
+Physical measurements
+Inspection history
+Phase 6 — Dashboard
+Dashboard
+Inspections
+Products
+Potential violations
+Complaints
+Officers
+Analytics
+Phase 7 — Reporting
+PDF generation
+Editable reports
+Evidence attachment
+Report history
+
+
+📚 34. References
+The implementation should use the latest applicable official Legal Metrology materials, including:
+Legal Metrology Act, 2009
+Legal Metrology (Packaged Commodities) Rules, 2011
+Applicable amendments and notifications
+Official Department of Consumer Affairs / Legal Metrology resources
+Official reference:
+https://consumeraffairs.gov.in/pages/legal-metrology-act
+Legal requirements should be mapped into the application's rule database only after reviewing the applicable official provisions, amendments, exemptions and notifications.
+
+
+⚖️ 35. Disclaimer
+This project is intended to assist compliance screening and inspection workflows.
+Automated results should not by themselves be treated as final legal determinations or enforcement orders.
+The final decision should remain with the authorized enforcement process/officer.
+The production version must use the latest applicable legal provisions, amendments, notifications, exemptions and official guidance.
+
+
+🇮🇳 36. Project Vision
+"From Manual Package Inspection to Intelligent, Evidence-Based Digital Compliance."
+                    📦
+                  PACKAGE
+                     │
+                     ↓
+                 📷 SCAN
+                     │
+                     ↓
+                  🤖 AI
+                     │
+                     ↓
+              📝 EXTRACTION
+                     │
+                     ↓
+             ⚖️ APPLICABILITY
+                     │
+                     ↓
+                📜 RULES
+                     │
+                     ↓
+             🔍 COMPLIANCE
+                     │
+              ┌──────┼──────┐
+              ↓      ↓      ↓
+             🟢     🟡     🔴
+            PASS   REVIEW  ISSUE
+                              │
+                              ↓
+                         📷 EVIDENCE
+                              │
+                              ↓
+                           👮 OFFICER
+                              │
+                              ↓
+                           📄 REPORT
+                              │
+                              ↓
+                       🏛 GOVERNMENT
+
+
+
+
