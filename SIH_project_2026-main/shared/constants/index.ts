@@ -1,0 +1,19 @@
+export const LEGAL_METROLOGY_ACT_YEAR = 2009;
+export const PACKAGED_COMMODITIES_RULES_YEAR = 2011;
+
+export const MANDATORY_DECLARATIONS = [
+  'PRODUCT_NAME',
+  'NET_QUANTITY',
+  'MRP',
+  'MANUFACTURER_DETAILS',
+  'COUNTRY_OF_ORIGIN',
+  'MFG_OR_PACK_DATE',
+  'CONSUMER_CARE_DETAILS',
+] as const;
+
+export const MIN_FONT_SIZE_MM: Record<string, number> = {
+  'NET_QTY_UNDER_50G': 1.5,
+  'NET_QTY_50G_TO_100G': 2.0,
+  'NET_QTY_100G_TO_500G': 3.0,
+  'NET_QTY_OVER_500G': 4.0,
+};

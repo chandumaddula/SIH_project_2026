@@ -1,0 +1,13 @@
+{
+  "name": "@legal-metrology/shared",
+  "version": "1.0.0",
+  "description": "Shared types, constants, and validation rules for Legal Metrology platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

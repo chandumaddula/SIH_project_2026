@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Digital Inspection Report - Legal Metrology</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; color: #333; }
+        h1 { color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 10px; }
+        .status-pass { color: green; font-weight: bold; }
+        .status-issue { color: red; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>⚖️ Legal Metrology Digital Inspection Notice</h1>
+    <p><strong>Inspection ID:</strong> {{ session_id }}</p>
+    <p><strong>Date:</strong> {{ date }}</p>
+    <p><strong>Inspector Badge:</strong> {{ officer_id }}</p>
+    <p><strong>Compliance Status:</strong> <span class="status-{{ status_class }}">{{ status }}</span></p>
+
+    <h2>Violations Summary</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Rule ID</th>
+                <th>Severity</th>
+                <th>Description</th>
+                <th>Legal Reference</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for v in violations %}
+            <tr>
+                <td>{{ v.rule_id }}</td>
+                <td>{{ v.severity }}</td>
+                <td>{{ v.description }}</td>
+                <td>{{ v.legal_reference }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
