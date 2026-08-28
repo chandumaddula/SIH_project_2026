@@ -1,192 +1,118 @@
-# Legal Metrology Compliance System
+# ⚖️ Legal Metrology Compliance System
 
-## AI-Powered Packaged Commodity Compliance Checking System
+### AI-Powered Packaged Commodity Compliance & Inspection Platform
 
-An intelligent software system for automatically scanning packaged commodity labels, extracting mandatory declarations, checking compliance with the Legal Metrology (Packaged Commodities) Rules, 2011, and assisting Legal Metrology enforcement officials in identifying potential non-compliances.
+> An intelligent software system that analyzes packaged commodity images, extracts mandatory declarations, determines applicable Legal Metrology requirements, identifies potential non-compliance, and assists enforcement officers in generating digital inspection reports.
 
-The system combines:
+---
+
+## 📌 Table of Contents
+
+- [About the Project](#-about-the-project)
+- [Problem Statement](#-problem-statement)
+- [Our Solution](#-our-solution)
+- [Real-Life Example](#-real-life-example)
+- [Key Features](#-key-features)
+- [System Workflow](#-system-workflow)
+- [System Architecture](#-system-architecture)
+- [User Roles](#-user-roles)
+- [Technology Stack](#-technology-stack)
+- [Project Structure](#-project-structure)
+- [AI Pipeline](#-ai-pipeline)
+- [Legal Rule Engine](#-legal-rule-engine)
+- [Compliance Result](#-compliance-result)
+- [Installation](#-installation)
+- [Environment Variables](#-environment-variables)
+- [Running the Project](#-running-the-project)
+- [API Overview](#-api-overview)
+- [Database](#-database)
+- [Security](#-security)
+- [Testing](#-testing)
+- [Future Scope](#-future-scope)
+- [Limitations](#-limitations)
+- [Project Impact](#-project-impact)
+- [Contributing](#-contributing)
+- [License](#-license)
+
+---
+
+# 📖 About the Project
+
+Packaged commodities sold in India are required to carry various mandatory declarations under the **Legal Metrology Act, 2009** and the **Legal Metrology (Packaged Commodities) Rules, 2011**, subject to applicability and prescribed exceptions.
+
+Examples of important package information include:
+
+- Product identity
+- Net quantity
+- Maximum Retail Price (MRP)
+- Manufacturer / Packer / Importer details
+- Address
+- Date-related declarations
+- Consumer care information
+- Other declarations prescribed by applicable provisions
+
+Currently, checking these declarations across a large number of products can require significant manual effort.
+
+Our system aims to assist this process using:
 
 - Computer Vision
 - OCR
-- AI-based declaration detection
+- Rule-based validation
 - Product classification
-- Rule-based legal validation
-- Legal knowledge management
 - Evidence management
-- Human-in-the-loop verification
-- Digital inspection reports
-- Government compliance dashboards
+- Digital inspection workflows
 
 ---
 
-# 1. Problem Statement
+# ❗ Problem Statement
 
-Packaged commodities sold through retail stores, supermarkets, and e-commerce platforms are required to display various mandatory declarations under the Legal Metrology framework.
+### Smart India Hackathon Problem Statement
 
-These declarations may include information such as:
+> Develop a software application capable of scanning packaged commodity labels, product images and product information to automatically assess compliance with the Legal Metrology (Packaged Commodities) Rules, 2011.
 
-- Name and address of manufacturer/packer/importer
-- Net quantity
-- Maximum Retail Price (MRP)
-- Date/month and year information, where applicable
-- Consumer care information
-- Country of origin, where applicable
-- Unit sale price, where applicable
-- Other declarations prescribed under applicable provisions
+The system should help identify potential issues such as:
 
-Manual inspection of a large number of products is:
+- Missing declarations
+- Incorrect or incomplete information
+- Potential MRP-related issues
+- Readability problems
+- Font-size related concerns
+- Improper placement
+- Other applicable declaration requirements
 
-- Time-consuming
-- Labour-intensive
-- Difficult to scale
-- Prone to inconsistent interpretation
-- Difficult to maintain as a searchable digital record
-
-The proposed system assists enforcement personnel by automatically analyzing package images and identifying potential compliance issues.
+The final legal decision remains with the authorized enforcement process/officer.
 
 ---
 
-# 2. Proposed Solution
+# 💡 Our Solution
 
-The system provides an AI-assisted inspection platform through which an officer can capture or upload product package images.
+We propose an **AI-assisted Legal Metrology Compliance and Inspection Platform**.
 
-The system then:
-
-1. Processes the package image.
-2. Detects relevant declaration regions.
-3. Extracts text using OCR.
-4. Identifies structured information such as MRP, quantity, dates, manufacturer details, etc.
-5. Determines the product/package context.
-6. Identifies the applicable legal requirements.
-7. Validates the extracted information against the configured legal rules.
-8. Generates potential compliance findings.
-9. Links each finding to visual evidence.
-10. Allows an authorized officer to verify the finding.
-11. Generates a digital compliance/inspection report.
-12. Stores the inspection and compliance history.
-
----
-
-# 3. Core Design Principle
-
-## AI does not decide the law.
-
-The system separates AI-based visual understanding from legal decision logic.
-
-### AI answers:
-
-> "What information is visible on the package?"
-
-### Rule Engine answers:
-
-> "What requirements are applicable to this package?"
-
-### Compliance Engine answers:
-
-> "Does the detected information satisfy the applicable requirements?"
-
-### Officer answers:
-
-> "Should this finding be confirmed for enforcement?"
-
-Therefore, the system follows:
-
-Image
-↓
-AI/OCR
-↓
-Extracted Facts
-↓
-Applicability Engine
-↓
-Legal Rules
-↓
-Validation
-↓
-Potential Finding
-↓
-Officer Verification
-↓
-Confirmed Finding / Rejected Finding
-↓
-Digital Report
-
-This architecture improves explainability, maintainability, and auditability.
-
----
-
-# 4. System Architecture
+The platform follows:
 
 ```text
-                        ┌──────────────────────┐
-                        │  LEGAL SOURCES       │
-                        │  Act / Rules /        │
-                        │  Amendments /        │
-                        │  Notifications       │
-                        └──────────┬───────────┘
-                                   │
-                                   ▼
-                        ┌──────────────────────┐
-                        │ LEGAL KNOWLEDGE BASE │
-                        └──────────┬───────────┘
-                                   │
-                                   ▼
-                        ┌──────────────────────┐
-                        │ APPLICABILITY ENGINE │
-                        └──────────┬───────────┘
-                                   │
-                                   ▼
-                        ┌──────────────────────┐
-                        │     RULE ENGINE      │
-                        └──────────┬───────────┘
-                                   │
-                                   │
-┌──────────────┐                   │
-│ Product      │                   │
-│ Package      │                   │
-│ Image        │                   │
-└──────┬───────┘                   │
-       │                           │
-       ▼                           │
-┌──────────────────────┐           │
-│ AI PROCESSING        │           │
-│                      │           │
-│ • Detection          │           │
-│ • OCR                │           │
-│ • Classification     │           │
-│ • Extraction         │           │
-│ • Visual Validation  │           │
-└──────────┬───────────┘           │
-           │                       │
-           ▼                       │
-   ┌──────────────────┐            │
-   │ EXTRACTED FACTS  │────────────┘
-   └────────┬─────────┘
-            │
-            ▼
-   ┌─────────────────────┐
-   │ COMPLIANCE ENGINE   │
-   └──────────┬──────────┘
-              │
-              ▼
-      ┌───────────────┐
-      │ FINDINGS      │
-      └───────┬───────┘
-              │
-              ▼
-      ┌──────────────────┐
-      │ OFFICER REVIEW   │
-      └────────┬─────────┘
-               │
-          ┌────┴─────┐
-          ▼          ▼
-      Confirm      Reject
-          │
-          ▼
-      Violation
-          │
-          ▼
-       Report
-          │
-          ▼
-      Dashboard
+📦 Product
+     ↓
+📷 Capture / Upload Package Images
+     ↓
+🤖 Image Processing
+     ↓
+📝 OCR
+     ↓
+🔍 Declaration Extraction
+     ↓
+📦 Product Classification
+     ↓
+⚖️ Applicability & Exemption Check
+     ↓
+📜 Legal Rule Engine
+     ↓
+🔎 Compliance Validation
+     ↓
+🟢 PASS / 🟡 REVIEW / 🔴 POTENTIAL ISSUE
+     ↓
+📷 Evidence
+     ↓
+👮 Officer Verification
+     ↓
+📄 Digital Inspection Report
