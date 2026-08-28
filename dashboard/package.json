@@ -1,0 +1,12 @@
+{
+  "name": "legal-metrology-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Dashboard dev server'",
+    "build": "echo 'Dashboard build'"
+  },
+  "dependencies": {
+    "@legal-metrology/shared": "file:../shared"
+  }
+}
