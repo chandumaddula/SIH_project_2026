@@ -1,7 +1,7 @@
 import { api } from './api';
-import { InspectionSession, ScanResultResponse } from '../types/scan';
+import { ScanRecord, InspectionSession, ScanResultResponse } from '../types/scan';
 
-// Mock initial database session records corresponding to schema.sql
+// Offline fallback mock history for UI preview when backend API is unavailable
 const MOCK_HISTORY: InspectionSession[] = [
   {
     id: 'SES-2026-901',
@@ -65,62 +65,88 @@ const MOCK_HISTORY: InspectionSession[] = [
       },
     ],
   },
-  {
-    id: 'SES-2026-892',
-    productName: 'Refined Sunflower Cooking Oil 1L',
-    category: 'Edible Oils',
-    complianceStatus: 'WARNING',
-    createdAt: '2026-08-27T09:20:00Z',
-    evidence: [
-      {
-        id: 103,
-        sessionId: 'SES-2026-892',
-        imageUrl: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=800&q=80',
-        extractedText: 'MRP Rs 165 (Incl taxes) | Net Vol: 1 L | Mfd 08/2026 | Contact care@sunfloweroil.com',
-        boundingBoxJson: [
-          { x: 10, y: 15, width: 40, height: 10, label: 'MRP Declaration', text: 'MRP Rs 165 (Incl taxes)', confidence: 0.88, isCompliant: true },
-          { x: 10, y: 30, width: 30, height: 10, label: 'Net Volume', text: 'Net Vol: 1 L', confidence: 0.90, isCompliant: true },
-          { x: 10, y: 45, width: 25, height: 8, label: 'Numeral Height', text: 'Font Height: 1.2mm', confidence: 0.85, isCompliant: false },
-        ],
-      },
-    ],
-    violations: [
-      {
-        id: 203,
-        sessionId: 'SES-2026-892',
-        ruleId: 'PCR-2011-RULE-9-HEIGHT',
-        severity: 'MEDIUM',
-        description: 'Declaration font height for net weight is 1.2mm, below the prescribed 1.5mm minimum height for 1L packages.',
-        legalReference: 'Legal Metrology (Packaged Commodities) Rules 2011, Rule 9 Table I',
-      },
-    ],
-  },
 ];
 
 let localSessionsStore: InspectionSession[] = [...MOCK_HISTORY];
 
+/**
+ * Scan Service Interface
+ * Frontend service layer decouples UI components from FastAPI endpoints
+ */
 export const scanService = {
-  async getScanHistory(): Promise<InspectionSession[]> {
+  /**
+   * Upload an image file to create a new scan DB record
+   * POST /scans
+   */
+  async createScan(file: File, productName?: string, category?: string): Promise<ScanRecord> {
+    const formData = new FormData();
+    formData.append('image', file);
+    if (productName) formData.append('product_name', productName);
+    if (category) formData.append('category', category);
+
     try {
-      const response = await api.get<InspectionSession[]>('/inspections/sessions');
-      return response.data;
-    } catch {
-      // Fallback for offline preview
-      return localSessionsStore;
+      const response = await api.post('/scans', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const raw = response.data;
+      return {
+        id: raw.id,
+        userId: raw.user_id || raw.userId,
+        imagePath: raw.image_path || raw.imagePath,
+        originalFilename: raw.original_filename || raw.originalFilename || file.name,
+        fileType: raw.file_type || raw.fileType || file.type,
+        fileSize: raw.file_size || raw.fileSize || file.size,
+        status: raw.status || 'PENDING',
+        createdAt: raw.created_at || raw.createdAt || new Date().toISOString(),
+        updatedAt: raw.updated_at || raw.updatedAt || new Date().toISOString(),
+      };
+    } catch (err) {
+      console.warn('Backend API connection unavailable, generating scan record fallback:', err);
+      return {
+        id: Math.floor(100 + Math.random() * 900),
+        imagePath: URL.createObjectURL(file),
+        originalFilename: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        status: 'PENDING',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
     }
   },
 
-  async getScanDetails(sessionId: string): Promise<InspectionSession> {
-    try {
-      const response = await api.get<InspectionSession>(`/inspections/sessions/${sessionId}`);
-      return response.data;
-    } catch {
-      const found = localSessionsStore.find((s) => s.id === sessionId);
-      if (!found) throw new Error('Session not found');
-      return found;
-    }
+  /**
+   * Fetch all scan records for current user
+   * GET /scans
+   */
+  async getMyScans(skip: number = 0, limit: number = 100): Promise<ScanRecord[]> {
+    const response = await api.get<ScanRecord[]>('/scans', {
+      params: { skip, limit },
+    });
+    return response.data;
   },
 
+  /**
+   * Fetch details of a single scan by ID
+   * GET /scans/{id}
+   */
+  async getScan(id: number | string): Promise<ScanRecord> {
+    const response = await api.get<ScanRecord>(`/scans/${id}`);
+    return response.data;
+  },
+
+  /**
+   * Delete a scan record by ID
+   * DELETE /scans/{id}
+   */
+  async deleteScan(id: number | string): Promise<void> {
+    await api.delete(`/scans/${id}`);
+  },
+
+  /**
+   * Full Upload & Inspection Scan Execution Pipeline
+   * POST /inspections/upload
+   */
   async uploadAndScan(
     file: File,
     productName: string = 'Scanned Commodity Item',
@@ -136,14 +162,14 @@ export const scanService = {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return response.data;
-    } catch {
+    } catch (error) {
+      console.warn('API connection unavailable, falling back to local inspection simulation:', error);
+
       // Create local simulation result with full schema compatibility
       const objectUrl = URL.createObjectURL(file);
       const newSessionId = 'SES-2026-' + Math.floor(100 + Math.random() * 900);
-
-      // Randomly simulate compliance verdict to test full UI flow
       const isCompliantSim = Math.random() > 0.4;
-      const status: InspectionSession['complianceStatus'] = isCompliantSim ? 'COMPLIANT' : 'NON_COMPLIANT';
+      const status = isCompliantSim ? 'COMPLIANT' : 'NON_COMPLIANT';
 
       const mockEvidence = {
         id: Math.floor(Math.random() * 10000),
@@ -198,6 +224,32 @@ export const scanService = {
         evidence: mockEvidence,
         violations: mockViolations,
       };
+    }
+  },
+
+  /**
+   * Fetch inspection sessions history
+   */
+  async getScanHistory(): Promise<InspectionSession[]> {
+    try {
+      const response = await api.get<InspectionSession[]>('/inspections/sessions');
+      return response.data;
+    } catch {
+      return localSessionsStore;
+    }
+  },
+
+  /**
+   * Fetch detail of inspection session
+   */
+  async getScanDetails(sessionId: string): Promise<InspectionSession> {
+    try {
+      const response = await api.get<InspectionSession>(`/inspections/sessions/${sessionId}`);
+      return response.data;
+    } catch {
+      const found = localSessionsStore.find((s) => s.id === sessionId);
+      if (!found) throw new Error('Inspection session not found');
+      return found;
     }
   },
 };

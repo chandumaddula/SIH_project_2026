@@ -1,0 +1,18 @@
+{
+  "image_filename": "sample_package.jpg",
+  "dimensions": { "width": 1920, "height": 1080 },
+  "annotations": [
+    {
+      "label": "mrp_declaration",
+      "text": "MRP Rs 149.00 (Incl. of all taxes)",
+      "bbox": [14, 18, 45, 12],
+      "rule_id": "PCR-2011-RULE-6-1-E"
+    },
+    {
+      "label": "net_quantity",
+      "text": "Net Qty: 250 g",
+      "bbox": [14, 35, 30, 10],
+      "rule_id": "PCR-2011-RULE-6-1-C"
+    }
+  ]
+}

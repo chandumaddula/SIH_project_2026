@@ -2,12 +2,21 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Scale,
-  LayoutDashboard,
-  FileCheck,
+  Home,
+  Search,
+  Salad,
+  FileEdit,
+  FileText,
+  User,
+  Camera,
+  PackageCheck,
+  Package,
+  AlertTriangle,
+  ClipboardList,
+  BarChart3,
   Building2,
   Users,
   ShieldCheck,
-  FileText,
   Settings,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
@@ -20,29 +29,38 @@ export const Sidebar: React.FC = () => {
     switch (role) {
       case 'admin':
         return [
-          { to: '/dashboard/admin', label: 'Admin Console', icon: <LayoutDashboard size={18} /> },
+          { to: '/dashboard/admin', label: 'Admin Console', icon: <Home size={18} /> },
           { to: '/dashboard/admin/users', label: 'User Management', icon: <Users size={18} /> },
           { to: '/dashboard/admin/rules', label: 'Compliance Rules', icon: <ShieldCheck size={18} /> },
           { to: '/dashboard/admin/logs', label: 'Audit Logs', icon: <FileText size={18} /> },
         ];
       case 'officer':
         return [
-          { to: '/dashboard/officer', label: 'Officer Hub', icon: <LayoutDashboard size={18} /> },
-          { to: '/dashboard/officer/inspections', label: 'Field Inspections', icon: <FileCheck size={18} /> },
-          { to: '/dashboard/officer/reports', label: 'Notice & Reports', icon: <FileText size={18} /> },
+          { to: '/dashboard/officer', label: 'Dashboard', icon: <Home size={18} /> },
+          { to: '/dashboard/officer/scan', label: 'New Inspection', icon: <Camera size={18} /> },
+          { to: '/dashboard/officer/verify-product', label: 'Verify Product', icon: <PackageCheck size={18} /> },
+          { to: '/dashboard/officer/product-records', label: 'Product Records', icon: <Package size={18} /> },
+          { to: '/dashboard/officer/violations', label: 'Violations', icon: <AlertTriangle size={18} /> },
+          { to: '/dashboard/officer/complaints', label: 'Complaints', icon: <FileEdit size={18} /> },
+          { to: '/dashboard/officer/history', label: 'Inspection History', icon: <ClipboardList size={18} /> },
+          { to: '/dashboard/officer/reports', label: 'Reports', icon: <BarChart3 size={18} /> },
+          { to: '/dashboard/officer/profile', label: 'Profile', icon: <User size={18} /> },
         ];
       case 'organisation':
         return [
           { to: '/dashboard/organisation', label: 'Org Dashboard', icon: <Building2 size={18} /> },
-          { to: '/dashboard/organisation/products', label: 'Product Verification', icon: <FileCheck size={18} /> },
+          { to: '/dashboard/organisation/products', label: 'Product Verification', icon: <PackageCheck size={18} /> },
           { to: '/dashboard/organisation/certificates', label: 'Certificates', icon: <ShieldCheck size={18} /> },
         ];
       case 'citizen':
       default:
         return [
-          { to: '/dashboard/citizen', label: 'Citizen Portal', icon: <LayoutDashboard size={18} /> },
-          { to: '/dashboard/citizen/verify', label: 'Scan Package Label', icon: <FileCheck size={18} /> },
-          { to: '/dashboard/citizen/history', label: 'Inspection History', icon: <FileText size={18} /> },
+          { to: '/dashboard/citizen', label: 'Home', icon: <Home size={18} /> },
+          { to: '/dashboard/citizen/verify', label: 'Product Information', icon: <Search size={18} /> },
+          { to: '/dashboard/citizen/ingredients', label: 'Ingredients & Consumer Info', icon: <Salad size={18} /> },
+          { to: '/dashboard/citizen/complaints', label: 'My Complaints', icon: <FileEdit size={18} /> },
+          { to: '/dashboard/citizen/history', label: 'Complaint Details', icon: <FileText size={18} /> },
+          { to: '/dashboard/citizen/profile', label: 'Profile', icon: <User size={18} /> },
         ];
     }
   };
@@ -92,13 +110,13 @@ export const Sidebar: React.FC = () => {
             Legal Metrology
           </h2>
           <span style={{ fontSize: '0.75rem', color: '#6366f1', fontWeight: 600 }}>
-            Compliance Portal
+            {role === 'officer' ? 'Official Inspection Portal' : 'Consumer Rights Portal'}
           </span>
         </div>
       </div>
 
       {/* Navigation Links */}
-      <nav style={{ flex: 1, padding: '20px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <nav style={{ flex: 1, padding: '20px 12px', display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
         <div
           style={{
             fontSize: '0.75rem',
@@ -110,7 +128,7 @@ export const Sidebar: React.FC = () => {
             marginBottom: '4px',
           }}
         >
-          {role.toUpperCase()} MENU
+          {role === 'officer' ? 'EMPLOYEE WORKFLOW' : role === 'citizen' ? 'CITIZEN WORKFLOW' : `${role.toUpperCase()} MENU`}
         </div>
         {getNavLinks().map((link) => (
           <NavLink

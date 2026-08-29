@@ -8,8 +8,9 @@ import { ScanStatusBadge } from '../../components/scanner/ScanStatusBadge';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { scanService } from '../../services/scanService';
-import { InspectionSession, InspectionEvidence, RuleViolation } from '../../types/scan';
-import { CheckCircle2, AlertOctagon, RotateCcw, FileText, History } from 'lucide-react';
+import { ScanRecord, InspectionSession, InspectionEvidence, RuleViolation } from '../../types/scan';
+import { parseUploadError } from '../../utils/errorUtils';
+import { CheckCircle2, AlertOctagon, RotateCcw, FileText, History, XCircle } from 'lucide-react';
 
 export const ScanProduct: React.FC = () => {
   const navigate = useNavigate();
@@ -21,6 +22,9 @@ export const ScanProduct: React.FC = () => {
 
   const [isScanning, setIsScanning] = useState(false);
   const [scanStage, setScanStage] = useState<number>(1);
+  const [createdScan, setCreatedScan] = useState<ScanRecord | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
+
   const [scanResult, setScanResult] = useState<{
     session: InspectionSession;
     evidence: InspectionEvidence;
@@ -30,7 +34,9 @@ export const ScanProduct: React.FC = () => {
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
     setPreviewUrl(URL.createObjectURL(file));
+    setCreatedScan(null);
     setScanResult(null);
+    setScanError(null);
   };
 
   const handleStartScan = async () => {
@@ -38,8 +44,20 @@ export const ScanProduct: React.FC = () => {
 
     setIsScanning(true);
     setScanStage(1);
+    setScanError(null);
 
-    // Simulate pipeline stage transitions
+    // 1. Create Scan Record via Axios -> POST /api/scans -> FastAPI
+    try {
+      const scanData = await scanService.createScan(selectedFile, productName, category);
+      setCreatedScan(scanData);
+    } catch (err) {
+      const userErr = parseUploadError(err);
+      setScanError(userErr);
+      setIsScanning(false);
+      return;
+    }
+
+    // 2. Simulate pipeline stage transitions for complete inspection verdict
     setTimeout(() => setScanStage(2), 700);
     setTimeout(() => setScanStage(3), 1500);
 
@@ -52,7 +70,7 @@ export const ScanProduct: React.FC = () => {
           violations: res.violations || res.session.violations || [],
         });
       } catch (err) {
-        console.error('Scan failed:', err);
+        setScanError(parseUploadError(err));
       } finally {
         setIsScanning(false);
       }
@@ -62,7 +80,9 @@ export const ScanProduct: React.FC = () => {
   const handleReset = () => {
     setSelectedFile(null);
     setPreviewUrl(null);
+    setCreatedScan(null);
     setScanResult(null);
+    setScanError(null);
     setIsScanning(false);
   };
 
@@ -126,19 +146,82 @@ export const ScanProduct: React.FC = () => {
               </div>
             </div>
 
+            {/* Error Banner */}
+            {scanError && (
+              <div
+                style={{
+                  padding: '18px 22px',
+                  backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  borderRadius: '14px',
+                  color: '#f87171',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '16px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <XCircle size={24} color="#ef4444" style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>{scanError}</span>
+                </div>
+                <Button variant="secondary" size="sm" onClick={() => setScanError(null)}>
+                  Dismiss
+                </Button>
+              </div>
+            )}
+
+            {/* Created Scan Status Banner */}
+            {createdScan && !scanError && (
+              <div
+                style={{
+                  padding: '20px 24px',
+                  backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  borderRadius: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '16px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <CheckCircle2 size={28} color="#10b981" />
+                  <div>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#10b981' }}>✅ Scan Created</h4>
+                    <p style={{ fontSize: '0.85rem', color: '#cbd5e1', marginTop: '2px' }}>
+                      FastAPI DB record created for <strong style={{ color: '#f8fafc' }}>{createdScan.originalFilename}</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Scan ID</span>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#6366f1' }}>#{createdScan.id}</div>
+                  </div>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Status</span>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f59e0b' }}>{createdScan.status}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {!previewUrl ? (
               <ImageUploader onImageSelected={handleFileSelect} disabled={isScanning} />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <ImagePreview imageUrl={previewUrl} showBoundingBoxes={false} />
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                  <Button variant="secondary" onClick={handleReset} disabled={isScanning}>
-                    Change Image
-                  </Button>
-                  <Button variant="primary" onClick={handleStartScan} isLoading={isScanning}>
-                    {isScanning ? 'Processing Label...' : 'Run Compliance OCR Audit'}
-                  </Button>
-                </div>
+                <ImagePreview
+                  imageUrl={previewUrl}
+                  file={selectedFile}
+                  showBoundingBoxes={false}
+                  onStartScan={handleStartScan}
+                  onChangeImage={handleReset}
+                  isScanning={isScanning}
+                />
               </div>
             )}
 

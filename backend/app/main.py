@@ -5,13 +5,16 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.database.connection import engine
 from app.database.base import Base
-from app.api import auth, users, scans
+from app import models
+from app.api import auth, users, scans, complaints, inspections
 
 # Initialize Database tables
 Base.metadata.create_all(bind=engine)
 
 # Ensure storage directories exist
 os.makedirs("storage/scans", exist_ok=True)
+os.makedirs("storage/processed", exist_ok=True)
+os.makedirs("storage/ocr", exist_ok=True)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -36,6 +39,9 @@ app.add_middleware(
 app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(users.router, prefix=settings.API_V1_STR)
 app.include_router(scans.router, prefix=settings.API_V1_STR)
+app.include_router(scans.router, prefix="/api")
+app.include_router(complaints.router, prefix=settings.API_V1_STR)
+app.include_router(inspections.router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def root():

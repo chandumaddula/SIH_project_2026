@@ -26,7 +26,7 @@ class Scan(Base):
     __tablename__ = "scans"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(String(64), nullable=True)
+    user_id = Column(String(64), ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     image_path = Column(String(512), nullable=False)
     original_filename = Column(String(255), nullable=False)
     file_type = Column(String(50), nullable=False)
@@ -36,6 +36,7 @@ class Scan(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
+    user = relationship("User", back_populates="scans")
     sessions = relationship("InspectionSession", back_populates="scan")
 
 class InspectionSession(Base):

@@ -4,8 +4,8 @@ from pydantic import BaseModel, ConfigDict
 from app.models.scan import ComplianceStatusEnum, RuleSeverityEnum, ScanStatusEnum
 
 class ScanBase(BaseModel):
-    image_path: str
     original_filename: str
+    image_path: str
     file_type: str
     file_size: int
     user_id: Optional[str] = None
@@ -13,6 +13,18 @@ class ScanBase(BaseModel):
 
 class ScanCreate(ScanBase):
     pass
+
+class ScanListItem(BaseModel):
+    id: int
+    user_id: Optional[str] = None
+    original_filename: str
+    image_path: str
+    file_type: str
+    file_size: int
+    status: ScanStatusEnum
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 class ScanResponse(ScanBase):
     id: int

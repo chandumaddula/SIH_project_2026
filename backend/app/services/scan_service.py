@@ -20,6 +20,39 @@ def get_session_by_id(db: Session, session_id: str) -> Optional[InspectionSessio
 def list_scans(db: Session, skip: int = 0, limit: int = 100) -> List[Scan]:
     return db.query(Scan).order_by(Scan.created_at.desc()).offset(skip).limit(limit).all()
 
+def get_scan_by_id(db: Session, scan_id: int) -> Optional[Scan]:
+    return db.query(Scan).filter(Scan.id == scan_id).first()
+
+def delete_scan_record(db: Session, scan_id: int) -> bool:
+    scan = db.query(Scan).filter(Scan.id == scan_id).first()
+    if not scan:
+        return False
+    db.delete(scan)
+    db.commit()
+    return True
+
+def create_scan_record(
+    db: Session,
+    original_filename: str,
+    image_path: str,
+    file_type: str,
+    file_size: int,
+    user_id: Optional[str] = None,
+    status: str = ScanStatusEnum.PENDING.value,
+) -> Scan:
+    scan_record = Scan(
+        user_id=user_id,
+        image_path=image_path,
+        original_filename=original_filename,
+        file_type=file_type,
+        file_size=file_size,
+        status=status,
+    )
+    db.add(scan_record)
+    db.commit()
+    db.refresh(scan_record)
+    return scan_record
+
 def process_and_save_scan(
     db: Session,
     original_filename: str,
