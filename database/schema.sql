@@ -8,9 +8,22 @@ CREATE TABLE IF NOT EXISTS inspection_officers (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS scans (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR(64) REFERENCES users(id),
+    image_path VARCHAR(512) NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    file_type VARCHAR(50) NOT NULL,
+    file_size INTEGER NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS inspection_sessions (
     id VARCHAR(64) PRIMARY KEY,
     officer_id VARCHAR(64) REFERENCES inspection_officers(id),
+    scan_id INTEGER REFERENCES scans(id),
     product_name VARCHAR(255),
     category VARCHAR(100),
     compliance_status VARCHAR(50) NOT NULL,

@@ -1,31 +1,50 @@
-from fastapi import FastAPI, UploadFile, File
-from pydantic import BaseModel
-from typing import List, Optional
+import os
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from app.core.config import settings
+from app.database.connection import engine
+from app.database.base import Base
+from app.api import auth, users, scans
+
+# Initialize Database tables
+Base.metadata.create_all(bind=engine)
+
+# Ensure storage directories exist
+os.makedirs("storage/scans", exist_ok=True)
 
 app = FastAPI(
-    title="Legal Metrology Compliance API",
-    description="AI-powered Packaged Commodity Compliance & Inspection Backend",
-    version="1.0.0"
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
-class InspectionResponse(BaseModel):
-    session_id: str
-    status: str
-    extracted_fields: dict
-    violations: List[dict]
+# Mount Static Storage
+app.mount("/static", StaticFiles(directory="storage"), name="static")
+
+# CORS Configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include Routers
+app.include_router(auth.router, prefix=settings.API_V1_STR)
+app.include_router(users.router, prefix=settings.API_V1_STR)
+app.include_router(scans.router, prefix=settings.API_V1_STR)
 
 @app.get("/")
-def read_root():
-    return {"system": "Legal Metrology Compliance API", "status": "active"}
+def root():
+    return {
+        "status": "online",
+        "message": f"Welcome to {settings.PROJECT_NAME} API",
+        "docs": "/docs",
+    }
 
-@app.post("/api/v1/inspect", response_model=InspectionResponse)
-async def analyze_package_image(file: UploadFile = File(...)):
-    # 1. Preprocess & OCR
-    # 2. Extract Declarations
-    # 3. Evaluate Rule Engine
-    return InspectionResponse(
-        session_id="INSP-1001",
-        status="PASS",
-        extracted_fields={"MRP": "₹ 150.00", "Net Quantity": "500 g"},
-        violations=[]
-    )
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}

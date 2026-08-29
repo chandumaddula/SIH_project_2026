@@ -1,24 +1,35 @@
-// API Service for Legal Metrology Enforcement Backend
-export interface InspectionPayload {
-  officerId: string;
-  location: string;
-  imageUrls: string[];
-  productCategory: string;
-}
+/// <reference types="vite/client" />
+import axios from 'axios';
 
-export const apiService = {
-  async submitInspection(payload: InspectionPayload) {
-    console.log('Submitting field inspection payload:', payload);
-    return {
-      status: 200,
-      sessionId: `SESS-${Date.now()}`,
-      message: 'Inspection session recorded successfully'
-    };
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+
+export const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
   },
+});
 
-  async fetchVerificationCertificates(traderId?: string) {
-    return [
-      { id: 'CERT-2026-8812', trader: 'Venkateshwara Fresh Mart', status: 'VALID' }
-    ];
+// Request Interceptor: Attach JWT Token if available
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response Interceptor: Handle global 401 Unauthorized errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
+    return Promise.reject(error);
   }
-};
+);
