@@ -1,0 +1,418 @@
+/* ==========================================================================
+   Citizen Shell Styles
+   Government-service style, simple, trustworthy, consumer-friendly
+   ========================================================================== */
+
+/* ============================================================
+   Citizen Header
+   ============================================================ */
+.cit-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-height);
+  background-color: var(--color-white);
+  border-bottom: 1px solid var(--color-gray-200);
+  z-index: calc(var(--z-sticky) - 1);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-5);
+  box-shadow: var(--shadow-sm);
+}
+
+.cit-header__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.cit-header__home-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.cit-header__logo {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cit-header__hamburger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-2);
+  color: var(--color-gray-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  margin-left: var(--space-2);
+}
+
+.cit-header__hamburger:hover {
+  background-color: var(--color-gray-100);
+  color: var(--color-navy-900);
+}
+
+.cit-header__nav {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.cit-header__menu {
+  list-style: none;
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+}
+
+.cit-header__nav-link {
+  display: inline-block;
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-gray-700);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.cit-header__nav-link:hover {
+  background-color: var(--color-gray-100);
+  color: var(--color-navy-900);
+}
+
+.cit-header__nav-link--active {
+  background-color: var(--color-navy-50);
+  color: var(--color-navy-900);
+  font-weight: var(--font-weight-semibold);
+}
+
+.cit-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.cit-header__profile-btn,
+.cit-header__settings-btn,
+.cit-header__signout-btn {
+  background: none;
+  border: 1px solid var(--color-gray-300);
+  color: var(--color-gray-700);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.cit-header__profile-btn:hover,
+.cit-header__settings-btn:hover {
+  background-color: var(--color-gray-100);
+  border-color: var(--color-gray-400);
+  color: var(--color-navy-900);
+}
+
+.cit-header__signout-btn {
+  border-color: var(--color-error-600);
+  color: var(--color-error-600);
+}
+
+.cit-header__signout-btn:hover {
+  background-color: var(--color-error-100);
+}
+
+.cit-header__signout-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+.cit-header__signout-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-navy-900);
+  margin: 0;
+}
+
+.cit-header__signout-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-600);
+  margin: 0;
+}
+
+.cit-header__signout-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 768px) {
+  .cit-header {
+    height: var(--header-height-mobile);
+    padding: 0 var(--space-3);
+  }
+
+  .cit-header__actions {
+    gap: var(--space-1);
+  }
+
+  .cit-header__profile-btn,
+  .cit-header__settings-btn {
+    display: none;
+  }
+}
+
+/* ============================================================
+   Citizen Mobile Nav (Bottom navigation)
+   ============================================================ */
+.cit-mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--citizen-bottomnav-height);
+  background-color: var(--color-white);
+  border-top: 1px solid var(--color-gray-200);
+  z-index: var(--z-sticky);
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.cit-mobile-nav__list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.cit-mobile-nav__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cit-mobile-nav__item--active {
+  background-color: var(--color-navy-50);
+  border-top: 2px solid var(--color-success-600);
+}
+
+.cit-mobile-nav__link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  text-decoration: none;
+  color: var(--color-gray-600);
+  font-size: 10px;
+  font-weight: var(--font-weight-medium);
+  transition: color var(--transition-fast);
+}
+
+.cit-mobile-nav__item--active .cit-mobile-nav__link {
+  color: var(--color-navy-900);
+  font-weight: var(--font-weight-semibold);
+}
+
+.cit-mobile-nav__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.cit-mobile-nav__label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .cit-mobile-nav {
+    display: block;
+  }
+}
+
+/* ============================================================
+   Citizen Home Page
+   ============================================================ */
+.cit-home {
+  padding: var(--space-6);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.cit-home__header {
+  margin-bottom: var(--space-6);
+}
+
+.cit-home__title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-navy-900);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.cit-home__subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-600);
+  margin: 0;
+}
+
+.cit-home__content {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.cit-home__welcome-section {
+  background: linear-gradient(135deg, var(--color-navy-700), var(--color-navy-900));
+  color: var(--color-white);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.cit-home__welcome-msg {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+}
+
+.cit-home__quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.cit-home__quick-action-card {
+  background-color: var(--color-white);
+  border: 2px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  text-align: center;
+  transition: border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.cit-home__quick-action-card:hover {
+  border-color: var(--color-navy-500);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.cit-home__quick-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-navy-900);
+  padding: var(--space-3) var(--space-4);
+  width: 100%;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.cit-home__quick-action-btn:focus {
+  outline: 2px solid var(--color-navy-500);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.cit-home__recent-section,
+.cit-home__complaint-section,
+.cit-home__help-section {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+}
+
+.cit-home__section-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-navy-900);
+  margin: 0 0 var(--space-4) 0;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.cit-home__no-scans,
+.cit-home__no-complaints {
+  color: var(--color-gray-600);
+  font-size: var(--font-size-sm);
+  margin: 0;
+  padding: var(--space-4) 0;
+  text-align: center;
+  font-style: italic;
+}
+
+.cit-home__help-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.cit-home__help-list li {
+  padding: var(--space-3);
+  background-color: var(--color-gray-50);
+  border-left: 3px solid var(--color-success-600);
+  border-radius: var(--radius-sm);
+  color: var(--color-gray-700);
+  font-size: var(--font-size-sm);
+}
+
+@media (max-width: 768px) {
+  .cit-home {
+    padding: var(--space-4);
+  }
+
+  .cit-home__title {
+    font-size: var(--font-size-2xl);
+  }
+
+  .cit-home__quick-actions {
+    grid-template-columns: 1fr;
+  }
+}
