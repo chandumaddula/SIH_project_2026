@@ -27,11 +27,23 @@ share/python-wheels/
 MANIFEST
 
 # Virtual Environments
+.venv/
 venv/
 env/
 ENV/
 env.bak/
 venv.bak/
+backend/.venv/
+backend/venv/
+backend/env/
+
+# Python Cache & Testing
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.cover
 
 # Node / Frontend Dependencies & Builds
 node_modules/
@@ -47,19 +59,20 @@ dashboard/node_modules/
 
 # Storage & Uploaded File Artifacts
 storage/*
-!storage/scans/.gitkeep
+!storage/**/.gitkeep
 backend/storage/*
-!backend/storage/scans/.gitkeep
+!backend/storage/**/.gitkeep
 uploads/
 temp/
 
 # Environment Variables & Secrets
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+!.env.template
 backend/.env
+backend/.env.*
+!backend/.env.example
 
 # Database Files
 *.sqlite
