@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.core.security import create_access_token
 from app.models.user import User, UserRoleEnum
-from app.database.connection import SessionLocal
+from app.database.session import SessionLocal
 
 client = TestClient(app)
 

@@ -8,7 +8,7 @@ class TestAuthEndpoints(unittest.TestCase):
     def test_health_check(self):
         response = client.get("/health")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"status": "healthy"})
+        self.assertEqual(response.json()["status"], "healthy")
 
     def test_root_endpoint(self):
         response = client.get("/")

@@ -1,10 +1,10 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database.connection import get_db
+from app.database.session import get_db
 from app.models.inspection import Inspection
 from app.core.deps import get_current_user_optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 router = APIRouter(prefix="/inspections", tags=["Inspections"])
@@ -23,8 +23,7 @@ class InspectionResponse(BaseModel):
     location: Optional[str] = None
     remarks: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 @router.post("", response_model=InspectionResponse, status_code=status.HTTP_201_CREATED)
 @router.post("/", response_model=InspectionResponse, status_code=status.HTTP_201_CREATED)

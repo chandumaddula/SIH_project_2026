@@ -1,10 +1,10 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.database.connection import get_db
+from app.database.session import get_db
 from app.models.complaint import Complaint, ComplaintEvidence
 from app.core.deps import get_current_user_optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 router = APIRouter(prefix="/complaints", tags=["Complaints"])
@@ -21,8 +21,7 @@ class ComplaintResponse(BaseModel):
     status: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 @router.post("", response_model=ComplaintResponse, status_code=status.HTTP_201_CREATED)
 @router.post("/", response_model=ComplaintResponse, status_code=status.HTTP_201_CREATED)

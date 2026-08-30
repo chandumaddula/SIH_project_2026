@@ -5,7 +5,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from PIL import Image
 from sqlalchemy.orm import Session
-from app.database.connection import get_db
+from app.database.session import get_db
 from app.core.deps import get_current_user_optional, get_current_user
 from app.schemas.scan import (
     InspectionSessionResponse,
