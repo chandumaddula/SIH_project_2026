@@ -1,7 +1,24 @@
-from typing import Optional, List, Any
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 from app.models.scan import ComplianceStatusEnum, RuleSeverityEnum, ScanStatusEnum
+from app.schemas.inspection import InspectionEvidenceResponse, RuleViolationResponse
+
+PreliminaryResultType = str  # 'no_issue' | 'review_recommended' | 'potential_issue'
+
+class ImageQualityCheckResponse(BaseModel):
+    quality_status: str  # 'GOOD' | 'POOR'
+    usable: bool
+    quality_score: float
+    defects: List[str] = []
+    feedback: str
+
+class ScanUploadResponse(BaseModel):
+    scan_id: str
+    status: str = "uploaded"
+    message: Optional[str] = "Image uploaded and stored successfully."
+    file_path: Optional[str] = None
+    quality: Optional[ImageQualityCheckResponse] = None
 
 class ScanBase(BaseModel):
     original_filename: str
@@ -33,39 +50,6 @@ class ScanResponse(ScanBase):
 
     model_config = ConfigDict(from_attributes=True)
 
-class BoundingBoxItem(BaseModel):
-    x: float
-    y: float
-    width: float
-    height: float
-    label: str
-    text: str
-    confidence: float
-    isCompliant: bool = True
-
-class InspectionEvidenceBase(BaseModel):
-    image_url: str
-    bounding_box_json: Optional[List[Any]] = None
-    extracted_text: Optional[str] = None
-
-class InspectionEvidenceResponse(InspectionEvidenceBase):
-    id: int
-    session_id: str
-
-    model_config = ConfigDict(from_attributes=True)
-
-class RuleViolationBase(BaseModel):
-    rule_id: str
-    severity: RuleSeverityEnum
-    description: str
-    legal_reference: str
-
-class RuleViolationResponse(RuleViolationBase):
-    id: int
-    session_id: str
-
-    model_config = ConfigDict(from_attributes=True)
-
 class InspectionSessionBase(BaseModel):
     product_name: Optional[str] = None
     category: Optional[str] = None
@@ -87,3 +71,42 @@ class ScanResultResponse(BaseModel):
     session: InspectionSessionResponse
     evidence: Optional[InspectionEvidenceResponse] = None
     violations: List[RuleViolationResponse] = []
+
+class DetectedInfoSchema(BaseModel):
+    productName: Optional[str] = None
+    genericName: Optional[str] = None
+    mrp: Optional[str] = None
+    netQuantity: Optional[str] = None
+    manufacturer: Optional[str] = None
+    packer: Optional[str] = None
+    importer: Optional[str] = None
+    address: Optional[str] = None
+    countryOfOrigin: Optional[str] = None
+    mfgDate: Optional[str] = None
+    expDate: Optional[str] = None
+    batchNumber: Optional[str] = None
+    consumerCare: Optional[str] = None
+    barcode: Optional[str] = None
+
+class ScreeningResultSchema(BaseModel):
+    result: PreliminaryResultType
+    explanation: str
+    confidence: float
+    flags: List[str] = []
+    suggestedNextStep: str
+
+class CitizenScanResponse(BaseModel):
+    id: Any
+    scan_id: Optional[str] = None
+    original_filename: Optional[str] = None
+    image_path: Optional[str] = None
+    file_type: Optional[str] = None
+    file_size: Optional[int] = None
+    user_id: Optional[str] = None
+    status: Optional[str] = None
+    citizenId: Optional[str] = None
+    images: List[str] = []
+    quality: Optional[ImageQualityCheckResponse] = None
+    detected: Optional[DetectedInfoSchema] = None
+    screening: Optional[ScreeningResultSchema] = None
+    createdAt: Optional[str] = None

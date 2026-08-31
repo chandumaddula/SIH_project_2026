@@ -1,0 +1,33 @@
+from app.services import (
+    auth_service,
+    user_service,
+    product_service,
+    inspection_service,
+    scan_service,
+    compliance_service,
+    complaint_service,
+    location_service,
+    dashboard_service,
+    report_service,
+    image_service,
+    ocr_service,
+    product_extraction_service,
+    text_processing_service,
+)
+
+__all__ = [
+    "auth_service",
+    "user_service",
+    "product_service",
+    "inspection_service",
+    "scan_service",
+    "compliance_service",
+    "complaint_service",
+    "location_service",
+    "dashboard_service",
+    "report_service",
+    "image_service",
+    "ocr_service",
+    "product_extraction_service",
+    "text_processing_service",
+]

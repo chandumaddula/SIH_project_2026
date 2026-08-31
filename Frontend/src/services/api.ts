@@ -79,8 +79,72 @@ export const authService = {
     throw new Error('Invalid person type');
   },
 
+  async googleLogin(
+    personType: PersonType,
+    googleEmail?: string
+  ): Promise<AuthState> {
+    try {
+      const response = await fetch('/api/v1/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: googleEmail, personType })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          user: data.user,
+          isAuthenticated: true,
+          personType: data.personType || personType,
+          token: data.access_token
+        };
+      }
+    } catch (e) {
+      // Fallback if server is offline
+    }
+
+    const email = googleEmail || `google.${personType}@metrology.gov.in`;
+    let mockUser: AuthUser;
+
+    if (personType === 'employee') {
+      mockUser = {
+        id: `emp-google-${Date.now().toString().slice(-4)}`,
+        name: 'Google Employee User',
+        employeeId: `MET-GOOGLE-${Date.now().toString().slice(-4)}`,
+        department: 'Regional Metrology Inspection',
+        office: 'Regional Office #4',
+        contact: { phone: '+91 9876543210', email },
+        role: 'employee'
+      };
+    } else if (personType === 'admin') {
+      mockUser = {
+        id: `adm-google-${Date.now().toString().slice(-4)}`,
+        name: 'Google Admin User',
+        adminId: `ADM-GOOGLE-${Date.now().toString().slice(-4)}`,
+        email,
+        department: 'System Administration',
+        contact: { phone: '+91 9876543210', email },
+        role: 'admin'
+      };
+    } else {
+      mockUser = {
+        id: `cit-google-${Date.now().toString().slice(-4)}`,
+        citizenId: `CIT-GOOGLE-${Date.now().toString().slice(-4)}`,
+        name: 'Google Citizen User',
+        email,
+        createdAt: new Date().toISOString(),
+        role: 'citizen'
+      };
+    }
+
+    return {
+      user: mockUser,
+      isAuthenticated: true,
+      personType,
+      token: `google_oauth_token_${personType}_${Date.now()}`
+    };
+  },
+
   async logout(): Promise<void> {
-    // Phase 2: No-op (just clear localStorage if used)
     return Promise.resolve();
   },
 

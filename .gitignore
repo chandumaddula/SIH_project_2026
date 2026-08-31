@@ -1,12 +1,12 @@
-# Byte-compiled / optimized / DLL files
+# ==========================================
+# Legal Metrology System - Master .gitignore
+# ==========================================
+
+# --- Python & Bytecode ---
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -26,7 +26,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Virtual Environments
+# --- Virtual Environments ---
 .venv/
 venv/
 env/
@@ -37,36 +37,54 @@ backend/.venv/
 backend/venv/
 backend/env/
 
-# Python Cache & Testing
+# --- Testing & Coverage ---
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .coverage
 htmlcov/
 *.cover
+coverage/
 
-# Node / Frontend Dependencies & Builds
+# --- Node / Frontend Dependencies & Builds ---
 node_modules/
-.pnp
-.pnp.js
-coverage
-.next/
-out/
-build/
-.cache/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.cache/
+Frontend/node_modules/
+Frontend/dist/
+Frontend/build/
+Frontend/.cache/
 dashboard/dist/
 dashboard/node_modules/
+.pnp
+.pnp.js
+.next/
+out/
+.cache/
 
-# Storage & Uploaded File Artifacts
+# --- Storage & Uploaded Files ---
 storage/*
 !storage/**/.gitkeep
 backend/storage/*
 !backend/storage/**/.gitkeep
+backend/storage/scans/*
+!backend/storage/scans/.gitkeep
+backend/storage/processed/*
+!backend/storage/processed/.gitkeep
+backend/storage/ocr/*
+!backend/storage/ocr/.gitkeep
 uploads/
 temp/
+tmp/
 
-# Environment Variables & Secrets
+# --- Environment Variables & Secrets ---
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .env.*
 !.env.example
 !.env.template
@@ -74,21 +92,31 @@ backend/.env
 backend/.env.*
 !backend/.env.example
 
-# Database Files
+# --- Database & Dump Files ---
 *.sqlite
 *.sqlite3
 *.db
 legal_metrology.db
 backend/legal_metrology.db
+*.dump
+*.sql
 
-# Logs, OS & IDE Files
+# --- System Logs & Cache ---
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+
+# --- IDEs, Editor Settings & OS Files ---
 .idea/
 .vscode/
 *.swp
 *.swo
+*.tmp
+*.bak
 .DS_Store
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+.gemini/

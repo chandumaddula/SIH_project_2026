@@ -1,3 +1,4 @@
+import hashlib
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union
 from jose import jwt
@@ -17,7 +18,17 @@ def create_access_token(subject: Union[str, Any], expires_delta: Optional[timede
     return encoded_jwt
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    safe_password = plain_password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
+    if hashed_password.startswith("pbkdf2:"):
+        return hashed_password == f"pbkdf2:{hashlib.sha256(safe_password.encode()).hexdigest()}"
+    try:
+        return pwd_context.verify(safe_password, hashed_password)
+    except Exception:
+        return hashed_password == f"pbkdf2:{hashlib.sha256(safe_password.encode()).hexdigest()}"
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    safe_password = password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
+    try:
+        return pwd_context.hash(safe_password)
+    except Exception:
+        return f"pbkdf2:{hashlib.sha256(safe_password.encode()).hexdigest()}"

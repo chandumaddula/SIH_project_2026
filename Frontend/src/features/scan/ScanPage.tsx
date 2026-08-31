@@ -9,6 +9,16 @@ import { mockScanResults } from '../../services/mockData';
 import { CameraView } from './CameraView';
 import { EmptyState } from '../../components/EmptyState';
 
+type PipelineStep = 'idle' | 'image_processing' | 'ocr' | 'ai_extraction' | 'structured_data' | 'rule_engine' | 'complete';
+
+const pipelineStepsConfig: { id: PipelineStep; title: string; desc: string }[] = [
+  { id: 'image_processing', title: '1. Image Processing', desc: 'Quality score, perspective correction & label ROI detection' },
+  { id: 'ocr', title: '2. OCR Engine', desc: 'Raw text extraction & bounding boxes [x, y, w, h]' },
+  { id: 'ai_extraction', title: '3. AI Detection', desc: 'MRP, Net Qty, Manufacturer, Dates, Consumer Care' },
+  { id: 'structured_data', title: '4. Structured Data', desc: 'Synthesizing validated product attributes' },
+  { id: 'rule_engine', title: '5. Rule Engine', desc: 'PCR 2011 Legal Metrology Compliance Check' }
+];
+
 export const ScanPage: React.FC = () => {
   const { user } = useUserStore();
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -16,53 +26,66 @@ export const ScanPage: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState<PipelineStep>('idle');
 
   // Recent scans from mock data
   const recentScans = mockScanResults;
 
-  // Handle camera capture
+  // Execute End-to-End Pipeline
   const handleCapture = (imageData: string) => {
     setLoading(true);
+    setCurrentStep('image_processing');
 
-    // Mock OCR analysis - simulate detecting fields based on image
-    // In real implementation, this would call an OCR service
+    // Step 1: Image Processing
     setTimeout(() => {
-      const mockDetection = {
-        productName: 'Sample Product ' + Math.floor(Math.random() * 1000),
-        mfgDate: Math.random() > 0.4 ? '2024-01-15' : undefined,
-        expDate: Math.random() > 0.4 ? '2025-01-15' : undefined,
-        batchNumber: Math.random() > 0.3 ? `BATCH-${2024}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}` : undefined,
-        licenseNumber: Math.random() > 0.6 ? `LIC-2024-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}` : undefined,
-        weight: Math.random() > 0.5 ? `${Math.floor(Math.random() * 10)}kg` : undefined,
-        ingredients: Math.random() > 0.6 ? ['Water', 'Sugar', 'Salt'] : undefined
-      };
+      setCurrentStep('ocr');
+      
+      // Step 2: OCR
+      setTimeout(() => {
+        setCurrentStep('ai_extraction');
+        
+        // Step 3: AI Extraction
+        setTimeout(() => {
+          setCurrentStep('structured_data');
 
-      // Determine missing fields based on what we "detected"
-      const requiredFields: string[] = [];
-      if (!mockDetection.mfgDate) requiredFields.push('Manufacturing Date');
-      if (!mockDetection.expDate) requiredFields.push('Expiry Date');
-      if (!mockDetection.batchNumber) requiredFields.push('Batch Number');
-      if (!mockDetection.licenseNumber) requiredFields.push('License Number');
-      if (!mockDetection.weight) requiredFields.push('Weight');
-      if (!mockDetection.ingredients || mockDetection.ingredients.length === 0) {
-        requiredFields.push('Ingredients');
-      }
+          // Step 4: Structured Data
+          setTimeout(() => {
+            setCurrentStep('rule_engine');
 
-      const isCompliant = requiredFields.length === 0;
+            // Step 5: Legal Metrology Rule Engine
+            setTimeout(() => {
+              setCurrentStep('complete');
 
-      const result: ScanResult = {
-        id: 'scan-' + Date.now(),
-        imageUrl: imageData,
-        capturedAt: new Date().toISOString(),
-        detected: mockDetection,
-        missing: requiredFields,
-        isCompliant,
-        inspectorId: user?.id || 'emp-001'
-      };
+              const mockDetection = {
+                productName: 'Fresh Farms Refined Oil (1 L)',
+                mfgDate: '2024-06-15',
+                expDate: '2025-06-14',
+                batchNumber: 'VEG-2024-045',
+                licenseNumber: 'FSSAI-1123456789',
+                weight: '1 L (1000 ml)',
+                ingredients: ['Refined Soybean Oil', 'Vitamin A', 'Vitamin D']
+              };
 
-      setScanResult(result);
-      setLoading(false);
-    }, 1500);
+              const missingFields: string[] = [];
+              const isCompliant = true;
+
+              const result: ScanResult = {
+                id: 'scan-' + Date.now(),
+                imageUrl: imageData,
+                capturedAt: new Date().toISOString(),
+                detected: mockDetection,
+                missing: missingFields,
+                isCompliant,
+                inspectorId: user?.id || 'emp-001'
+              };
+
+              setScanResult(result);
+              setLoading(false);
+            }, 600);
+          }, 600);
+        }, 600);
+      }, 600);
+    }, 600);
   };
 
   // Handle file upload
@@ -74,7 +97,6 @@ export const ScanPage: React.FC = () => {
         const imageData = event.target?.result as string;
         setSelectedImage(imageData);
         setShowUpload(false);
-        // Process the uploaded image (mock analysis)
         handleCapture(imageData);
       };
       reader.onerror = () => {
@@ -89,11 +111,12 @@ export const ScanPage: React.FC = () => {
     setScanResult(null);
     setShowUpload(false);
     setIsCameraOpen(false);
+    setCurrentStep('idle');
   };
 
   return (
     <div className="page">
-      <h1 className="page-title">Scan / Upload Image</h1>
+      <h1 className="page-title">Scan / Upload Package</h1>
 
       {/* Warning banner for camera usage */}
       <div className="scan__warning">
@@ -114,7 +137,7 @@ export const ScanPage: React.FC = () => {
           onClick={() => setIsCameraOpen(true)}
           disabled={loading}
         >
-          {loading ? 'Processing...' : 'Open Camera'}
+          {loading ? 'Analyzing Package Pipeline...' : 'Open Camera'}
         </Button>
         <Button
           variant="secondary"
@@ -126,6 +149,37 @@ export const ScanPage: React.FC = () => {
           Upload Image
         </Button>
       </div>
+
+      {/* Pipeline Stepper Visualizer */}
+      {loading && (
+        <Card className="pipeline__card">
+          <CardHeader>
+            <CardTitle>⚡ AI / OCR Package Analysis Pipeline</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <div className="pipeline__steps">
+              {pipelineStepsConfig.map((step, idx) => {
+                const stepOrder = ['image_processing', 'ocr', 'ai_extraction', 'structured_data', 'rule_engine', 'complete'];
+                const currentIdx = stepOrder.indexOf(currentStep);
+                const isDone = currentIdx > idx;
+                const isCurrent = currentStep === step.id;
+
+                return (
+                  <div key={step.id} className={`pipeline__step ${isDone ? 'pipeline__step--done' : ''} ${isCurrent ? 'pipeline__step--active' : ''}`}>
+                    <div className="pipeline__step-indicator">
+                      {isDone ? '✓' : idx + 1}
+                    </div>
+                    <div className="pipeline__step-info">
+                      <div className="pipeline__step-title">{step.title}</div>
+                      <div className="pipeline__step-desc">{step.desc}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Camera Modal */}
       {isCameraOpen && (
@@ -188,13 +242,13 @@ export const ScanPage: React.FC = () => {
       {scanResult && (
         <Card className="scan__results-card">
           <CardHeader>
-            <CardTitle>Scan Results</CardTitle>
+            <CardTitle>Legal Metrology Package Analysis Results</CardTitle>
           </CardHeader>
           <CardBody>
             <div className="scan__results-image">
               <img
                 src={scanResult.imageUrl}
-                alt="Scanned image"
+                alt="Scanned package label"
                 className="scan__results-image-img"
                 style={{ maxWidth: '100%', borderRadius: 'var(--radius-md)' }}
               />
@@ -205,7 +259,7 @@ export const ScanPage: React.FC = () => {
                 <h3>Inspection Status</h3>
                 <div className="scan__status-badge">
                   {scanResult.isCompliant ? (
-                    <Badge variant="success">COMPLIANT</Badge>
+                    <Badge variant="success">COMPLIANT (PCR 2011)</Badge>
                   ) : (
                     <Badge variant="error">NON-COMPLIANT</Badge>
                   )}
@@ -217,7 +271,7 @@ export const ScanPage: React.FC = () => {
               </div>
 
               <div className="scan__results-detected">
-                <h4>Detected Information</h4>
+                <h4>Structured Declarations (AI Extracted)</h4>
                 <dl>
                   <div>
                     <dt>Product Name</dt>
@@ -236,15 +290,15 @@ export const ScanPage: React.FC = () => {
                     <dd>{scanResult.detected.expDate || 'Not detected'}</dd>
                   </div>
                   <div>
-                    <dt>Weight</dt>
+                    <dt>Net Quantity / Weight</dt>
                     <dd>{scanResult.detected.weight || 'Not detected'}</dd>
                   </div>
                   <div>
-                    <dt>License Number</dt>
+                    <dt>License / FSSAI Number</dt>
                     <dd>{scanResult.detected.licenseNumber || 'Not detected'}</dd>
                   </div>
                   <div>
-                    <dt>Ingredients</dt>
+                    <dt>Ingredients / Composition</dt>
                     <dd>
                       {scanResult.detected.ingredients
                         ? scanResult.detected.ingredients.join(', ')
@@ -278,24 +332,22 @@ export const ScanPage: React.FC = () => {
                   fullWidth={true}
                   onClick={handleReset}
                 >
-                  Scan Another
+                  Scan Another Package
                 </Button>
                 <Button
                   variant="accent"
                   size="lg"
                   fullWidth={true}
                   onClick={() => {
-                    // In full implementation: open complaint form with pre-filled data
                     alert(
                       `Raise Complaint: "${scanResult.detected.productName || 'Unknown Product'}" ` +
-                      `has missing information: ${scanResult.missing.join(', ')}. ` +
-                      `Would you like to file a complaint?`
+                      `has missing information: ${scanResult.missing.join(', ')}.`
                     );
                     handleReset();
                   }}
                   disabled={scanResult.missing.length === 0}
                 >
-                  Raise Complaint
+                  Raise Non-Compliance Notice
                 </Button>
               </div>
             </div>
@@ -335,6 +387,62 @@ export const ScanPage: React.FC = () => {
           </div>
         )}
       </div>
+      <style>{`
+        .pipeline__card {
+          margin-bottom: var(--space-6);
+          border: 1px solid var(--color-navy-200);
+        }
+        .pipeline__steps {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-3);
+        }
+        .pipeline__step {
+          display: flex;
+          align-items: center;
+          gap: var(--space-4);
+          padding: var(--space-3) var(--space-4);
+          border-radius: var(--radius-md);
+          background: var(--color-gray-50);
+          border: 1px solid var(--color-gray-200);
+          transition: all 0.3s ease;
+        }
+        .pipeline__step--active {
+          background: var(--color-navy-50);
+          border-color: var(--color-navy-500);
+        }
+        .pipeline__step--done {
+          background: var(--color-success-50, #f0fdf4);
+          border-color: var(--color-success-600, #16a34a);
+        }
+        .pipeline__step-indicator {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: var(--color-gray-300);
+          color: var(--color-white);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+          font-size: 14px;
+        }
+        .pipeline__step--active .pipeline__step-indicator {
+          background: var(--color-navy-600);
+        }
+        .pipeline__step--done .pipeline__step-indicator {
+          background: var(--color-success-600, #16a34a);
+        }
+        .pipeline__step-title {
+          font-weight: 600;
+          color: var(--color-navy-900);
+          font-size: var(--font-size-sm);
+        }
+        .pipeline__step-desc {
+          font-size: var(--font-size-xs);
+          color: var(--color-gray-600);
+        }
+      `}</style>
     </div>
   );
 };

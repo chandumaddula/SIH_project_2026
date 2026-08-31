@@ -1,15 +1,3 @@
-/* ==========================================================================
-   Inspection Map Page
-   Task K — Inspection Map
-
-   Leaflet + OpenStreetMap with mock inspection locations.
-   Markers categorized by priority. Popup shows business details.
-   Filters and legend.
-
-   Reuses Leaflet (already a dependency). Markers styled via SVG-style
-   divIcons (no emoji in actual map UI).
-   ========================================================================== */
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
@@ -17,325 +5,256 @@ import 'leaflet/dist/leaflet.css';
 import { Card, CardHeader, CardBody, CardTitle } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
-import {
-  InspectionLocation,
-  MapPriority,
-  getInspectionLocations,
-  MARKER_STYLE,
-} from '../../services/inspectionMap.service';
 
-type PriorityFilter = 'all' | MapPriority;
-type DateFilter = 'all' | 'week' | 'month';
-type StatusFilter = 'all' | 'inspected' | 'pending' | 'high_priority';
+export interface NearbyLocation {
+  id: string;
+  name: string;
+  category: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  distance_km: number;
+  travel_time_mins: number;
+  rating: number;
+  google_maps_url: string;
+  place_id?: string;
+  open_now?: boolean;
+}
 
 export const InspectionMap: React.FC = () => {
   const navigate = useNavigate();
-  const [phase, setPhase] = useState<'loading' | 'done'>('loading');
-  const [locations, setLocations] = useState<InspectionLocation[]>([]);
-  const [selectedLocation, setSelectedLocation] = useState<InspectionLocation | null>(null);
-  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [loading, setLoading] = useState(true);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>({ lat: 28.6139, lng: 77.2090 });
+  const [locations, setLocations] = useState<NearbyLocation[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<NearbyLocation | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
   const [markerLayer, setMarkerLayer] = useState<L.LayerGroup | null>(null);
+  const [locating, setLocating] = useState(false);
 
-  /* ---- Load data on mount ---- */
+  // Fetch Nearby Locations from FastAPI Backend
+  const fetchNearbyLocations = async (lat: number, lng: number, category: string = 'all') => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `/api/v1/locations/nearby?latitude=${lat}&longitude=${lng}&category=${category}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setLocations(data.locations || []);
+      }
+    } catch (e) {
+      console.warn('Backend offline, using local geocoded places data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Get Employee's Current Geolocation
+  const handleGetCurrentLocation = () => {
+    if ('geolocation' in navigator) {
+      setLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          setUserCoords({ lat, lng });
+          fetchNearbyLocations(lat, lng, categoryFilter);
+          if (mapInstance) {
+            mapInstance.setView([lat, lng], 13);
+          }
+          setLocating(false);
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          fetchNearbyLocations(userCoords.lat, userCoords.lng, categoryFilter);
+          setLocating(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      fetchNearbyLocations(userCoords.lat, userCoords.lng, categoryFilter);
+    }
+  };
+
+  // Initial load
   useEffect(() => {
-    setTimeout(() => {
-      setLocations(getInspectionLocations());
-      setPhase('done');
-    }, 300);
+    handleGetCurrentLocation();
   }, []);
 
-  /* ---- Initialize map after first render ---- */
-
+  // Initialize Leaflet Map
   useEffect(() => {
-    if (phase !== 'done') return;
     const mapElement = document.getElementById('emp-map');
-    if (!mapElement) return;
+    if (!mapElement || mapInstance) return;
 
-    setTimeout(() => {
-      const instance = L.map('emp-map', {
-        center: [40.7520, -73.9650] as L.LatLngExpression,
-        zoom: 12,
-        preferCanvas: true,
-        attributionControl: false,
-      });
+    const instance = L.map('emp-map', {
+      center: [userCoords.lat, userCoords.lng] as L.LatLngExpression,
+      zoom: 13,
+      preferCanvas: true,
+      attributionControl: false,
+    });
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
-      }).addTo(instance);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(instance);
 
-      const layer = L.layerGroup().addTo(instance);
-
-      setMapInstance(instance);
-      setMarkerLayer(layer);
-    }, 100);
+    const layer = L.layerGroup().addTo(instance);
+    setMapInstance(instance);
+    setMarkerLayer(layer);
 
     return () => {
-      if (mapInstance) {
-        mapInstance.remove();
-      }
+      instance.remove();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase]);
+  }, []);
 
-  /* ---- Filtered locations ---- */
-
-  const filteredLocations = locations.filter(loc => {
-    if (priorityFilter !== 'all' && loc.priority !== priorityFilter) return false;
-    if (statusFilter !== 'all' && loc.mapStatus !== statusFilter) return false;
-    if (categoryFilter !== 'all' && loc.type !== categoryFilter) return false;
-    if (dateFilter !== 'all') {
-      if (!loc.lastInspection) return false;
-      const d = new Date(loc.lastInspection);
-      const now = new Date();
-      const diffDays = (now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
-      if (dateFilter === 'week' && diffDays > 7) return false;
-      if (dateFilter === 'month' && diffDays > 30) return false;
-    }
-    return true;
-  });
-
-  /* ---- Render markers ---- */
-
+  // Render Markers
   useEffect(() => {
-    if (!markerLayer) return;
+    if (!markerLayer || !mapInstance) return;
     markerLayer.clearLayers();
 
-    filteredLocations.forEach(loc => {
-      const style = MARKER_STYLE[loc.priority];
-      const marker = L.marker(loc.coords as L.LatLngExpression, {
+    // User Location Marker
+    const userMarker = L.marker([userCoords.lat, userCoords.lng], {
+      icon: L.divIcon({
+        html: `<div style="background:#2563eb; color:white; width:36px; height:36px; border-radius:50%; border:3px solid white; display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:0 4px 10px rgba(0,0,0,0.3);">📍</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      })
+    }).addTo(markerLayer);
+
+    userMarker.bindPopup('<b>Employee Current Location</b>');
+
+    // Nearby Businesses Markers
+    locations.forEach((loc) => {
+      const isSelected = selectedLocation?.id === loc.id;
+      const markerColor = loc.category === 'Supermarket' ? '#16a34a' : loc.category === 'Shopping Mall' ? '#9333ea' : loc.category === 'Grocery Store' ? '#ea580c' : '#2563eb';
+
+      const marker = L.marker([loc.latitude, loc.longitude], {
         icon: L.divIcon({
-          html: `
-            <div style="
-              background: ${style.bgColor};
-              color: ${style.color};
-              width: 32px;
-              height: 32px;
-              border-radius: 50%;
-              border: 3px solid ${style.borderColor};
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 0.85rem;
-              font-weight: bold;
-              box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            ">
-              ${loc.priority === 'high' ? '!' : loc.priority === 'medium' ? '◐' : '✓'}
-            </div>
-          `,
+          html: `<div style="background:${markerColor}; color:white; width:${isSelected ? '38px' : '30px'}; height:${isSelected ? '38px' : '30px'}; border-radius:50%; border:2px solid white; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:bold; box-shadow:0 3px 8px rgba(0,0,0,0.25);">🏢</div>`,
           iconSize: [32, 32],
           iconAnchor: [16, 16],
-        }),
+        })
       }).addTo(markerLayer);
 
+      marker.on('click', () => {
+        setSelectedLocation(loc);
+      });
+
       marker.bindPopup(`
-        <div style="min-width:200px; font-family: inherit;">
-          <strong style="font-size:14px;">${loc.name}</strong><br>
-          <small style="color:#666;">${loc.address}</small><br>
-          <div style="margin-top:6px;">
-            <span style="display:inline-block; padding:2px 8px; background:${style.bgColor}; color:${style.color}; border-radius:10px; font-size:11px; font-weight:600;">
-              ${style.label}
-            </span>
-          </div>
-          <div style="margin-top:6px; font-size:12px;">
-            <div>Inspections: <strong>${loc.inspectionCount}</strong></div>
-            <div>Status: <strong>${loc.latestStatus}</strong></div>
-            ${loc.openComplaints > 0 ? `<div style="color:#d32f2f;">Open complaints: <strong>${loc.openComplaints}</strong></div>` : ''}
+        <div style="font-family:inherit; min-width:200px;">
+          <strong style="font-size:14px; color:#1e293b;">${loc.name}</strong><br>
+          <small style="color:#64748b;">${loc.address}</small><br>
+          <div style="margin-top:6px; display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-size:12px; font-weight:600; color:#2563eb;">${loc.distance_km} km</span>
+            <span style="font-size:12px; font-weight:600; color:#16a34a;">${loc.travel_time_mins} mins</span>
           </div>
         </div>
       `);
     });
 
-    if (filteredLocations.length > 0 && mapInstance) {
-      const bounds = L.latLngBounds(
-        filteredLocations.map((loc) => L.latLng(loc.coords as L.LatLngExpression))
-      );
+    if (locations.length > 0) {
+      const allCoords = [[userCoords.lat, userCoords.lng], ...locations.map(l => [l.latitude, l.longitude])];
+      const bounds = L.latLngBounds(allCoords as L.LatLngBoundsLiteral);
       mapInstance.fitBounds(bounds, { padding: [40, 40] });
     }
-  }, [markerLayer, filteredLocations, mapInstance]);
+  }, [markerLayer, locations, selectedLocation, userCoords, mapInstance]);
 
-  /* ---- Handlers ---- */
-
-  const handleClearFilters = () => {
-    setPriorityFilter('all');
-    setStatusFilter('all');
-    setDateFilter('all');
-    setCategoryFilter('all');
+  const handleFilterChange = (cat: string) => {
+    setCategoryFilter(cat);
+    fetchNearbyLocations(userCoords.lat, userCoords.lng, cat);
   };
 
-  const handleViewDetails = (loc: InspectionLocation) => {
-    setSelectedLocation(loc);
+  const handleNavigateGoogleMaps = (loc: NearbyLocation) => {
+    window.open(loc.google_maps_url, '_blank');
   };
-
-  const handleStartInspection = () => {
-    navigate('/employee/inspection/new');
-  };
-
-  const handleViewInspections = (loc: InspectionLocation) => {
-    setSelectedLocation(loc);
-  };
-
-  /* ---- Render ---- */
-
-  if (phase === 'loading') {
-    return (
-      <div className="page im-page">
-        <h1 className="page-title">Inspection Map</h1>
-        <p className="page-subtitle">Loading map...</p>
-        <style>{imStyles}</style>
-      </div>
-    );
-  }
 
   return (
     <div className="page im-page">
-      {/* Header */}
       <div className="im-header">
-        <h1 className="page-title">Inspection Map</h1>
-        <p className="page-subtitle">
-          View inspection locations by priority. Click markers for details.
-        </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h1 className="page-title">Nearby Inspection Locations Map</h1>
+            <p className="page-subtitle">
+              Discover supermarkets, grocery stores, retail stores, malls & markets nearby your current location.
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            onClick={handleGetCurrentLocation}
+            loading={locating}
+          >
+            📍 {locating ? 'Locating...' : 'Get Current Location'}
+          </Button>
+        </div>
       </div>
 
       <div className="im-body">
-        {/* Left column: filters + legend + location list */}
+        {/* Left Column: Category Filters & Business List */}
         <div className="im-sidebar">
           <Card>
             <CardHeader>
-              <CardTitle>Filters</CardTitle>
+              <CardTitle>Filter Category</CardTitle>
             </CardHeader>
             <CardBody>
               <div className="im-filters">
-                <div className="im-filter-group">
-                  <label className="im-filter-label">Priority</label>
-                  <select
-                    className="im-filter-select"
-                    value={priorityFilter}
-                    onChange={e => setPriorityFilter(e.target.value as PriorityFilter)}
-                  >
-                    <option value="all">All</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
-                <div className="im-filter-group">
-                  <label className="im-filter-label">Status</label>
-                  <select
-                    className="im-filter-select"
-                    value={statusFilter}
-                    onChange={e => setStatusFilter(e.target.value as StatusFilter)}
-                  >
-                    <option value="all">All</option>
-                    <option value="inspected">Recently Inspected</option>
-                    <option value="pending">Pending</option>
-                    <option value="high_priority">High Priority</option>
-                  </select>
-                </div>
-                <div className="im-filter-group">
-                  <label className="im-filter-label">Date</label>
-                  <select
-                    className="im-filter-select"
-                    value={dateFilter}
-                    onChange={e => setDateFilter(e.target.value as DateFilter)}
-                  >
-                    <option value="all">All</option>
-                    <option value="week">Past 7 Days</option>
-                    <option value="month">Past 30 Days</option>
-                  </select>
-                </div>
-                <div className="im-filter-group">
-                  <label className="im-filter-label">Category</label>
-                  <select
-                    className="im-filter-select"
-                    value={categoryFilter}
-                    onChange={e => setCategoryFilter(e.target.value)}
-                  >
-                    <option value="all">All</option>
-                    <option value="supermarket">Supermarket</option>
-                    <option value="market">Market</option>
-                    <option value="retail">Retail</option>
-                  </select>
-                </div>
-                <Button variant="ghost" size="sm" onClick={handleClearFilters}>
-                  Clear Filters
-                </Button>
+                <select
+                  className="im-filter-select"
+                  value={categoryFilter}
+                  onChange={(e) => handleFilterChange(e.target.value)}
+                >
+                  <option value="all">All Categories</option>
+                  <option value="Supermarket">Supermarkets</option>
+                  <option value="Grocery Store">Grocery Stores</option>
+                  <option value="Retail Store">Retail Stores</option>
+                  <option value="Shopping Mall">Shopping Malls</option>
+                  <option value="Market">Markets</option>
+                </select>
               </div>
             </CardBody>
           </Card>
 
-          {/* Legend */}
+          {/* Nearby Establishments List */}
           <Card>
             <CardHeader>
-              <CardTitle>Legend</CardTitle>
-            </CardHeader>
-            <CardBody>
-              <div className="im-legend">
-                <div className="im-legend__row">
-                  <span className="im-legend__dot" style={{ background: '#d32f2f', borderColor: '#d32f2f' }}>!</span>
-                  <span>High Priority</span>
-                </div>
-                <div className="im-legend__row">
-                  <span className="im-legend__dot" style={{ background: '#f57c00', borderColor: '#f57c00' }}>◐</span>
-                  <span>Pending Inspection</span>
-                </div>
-                <div className="im-legend__row">
-                  <span className="im-legend__dot" style={{ background: '#2e7d32', borderColor: '#2e7d32' }}>✓</span>
-                  <span>Recently Inspected</span>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-
-          {/* Location list */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Locations</CardTitle>
-              <span className="im-count">{filteredLocations.length}</span>
+              <CardTitle>Nearby Businesses ({locations.length})</CardTitle>
             </CardHeader>
             <CardBody>
               <div className="im-location-list">
-                {filteredLocations.map(loc => {
-                  const style = MARKER_STYLE[loc.priority];
-                  return (
+                {loading ? (
+                  <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center' }}>Searching nearby places...</p>
+                ) : locations.length === 0 ? (
+                  <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center' }}>No businesses found in this area.</p>
+                ) : (
+                  locations.map((loc) => (
                     <button
                       key={loc.id}
-                      className="im-location-item"
-                      onClick={() => handleViewDetails(loc)}
+                      className={`im-location-item ${selectedLocation?.id === loc.id ? 'im-location-item--selected' : ''}`}
+                      onClick={() => setSelectedLocation(loc)}
                     >
-                      <span
-                        className="im-location-item__dot"
-                        style={{ background: style.bgColor, color: style.color, borderColor: style.borderColor }}
-                      >
-                        {loc.priority === 'high' ? '!' : loc.priority === 'medium' ? '◐' : '✓'}
-                      </span>
                       <div className="im-location-item__body">
-                        <div className="im-location-item__name">{loc.name}</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div className="im-location-item__name">{loc.name}</div>
+                          <Badge variant="info" size="sm">{loc.category}</Badge>
+                        </div>
                         <div className="im-location-item__address">{loc.address}</div>
                         <div className="im-location-item__meta">
-                          <Badge variant={loc.priority === 'high' ? 'error' : loc.priority === 'medium' ? 'warning' : 'success'} size="sm">
-                            {style.label}
-                          </Badge>
-                          <span>{loc.inspectionCount} inspection(s)</span>
+                          <span>📍 {loc.distance_km} km away</span>
+                          <span>⏱️ {loc.travel_time_mins} mins</span>
+                          <span>⭐ {loc.rating}</span>
                         </div>
                       </div>
                     </button>
-                  );
-                })}
+                  ))
+                )}
               </div>
             </CardBody>
           </Card>
         </div>
 
-        {/* Map + details */}
+        {/* Right Column: Map & Location Details Drawer */}
         <div className="im-map-area">
-          <div id="emp-map" className="im-map" aria-label="Inspection locations map"></div>
+          <div id="emp-map" className="im-map" aria-label="Nearby inspection map"></div>
 
           {selectedLocation && (
             <Card className="im-details">
@@ -344,46 +263,48 @@ export const InspectionMap: React.FC = () => {
                 <button
                   className="im-details__close"
                   onClick={() => setSelectedLocation(null)}
-                  aria-label="Close"
                 >
                   ✕
                 </button>
               </CardHeader>
               <CardBody>
                 <div className="im-details__row">
+                  <span>Category</span>
+                  <Badge variant="primary" size="sm">{selectedLocation.category}</Badge>
+                </div>
+                <div className="im-details__row">
                   <span>Address</span>
                   <strong>{selectedLocation.address}</strong>
                 </div>
                 <div className="im-details__row">
-                  <span>Last Inspection</span>
-                  <strong>{selectedLocation.lastInspection ?? 'Not yet inspected'}</strong>
+                  <span>Distance</span>
+                  <strong style={{ color: '#2563eb' }}>{selectedLocation.distance_km} km away</strong>
                 </div>
                 <div className="im-details__row">
-                  <span>Inspection Count</span>
-                  <strong>{selectedLocation.inspectionCount}</strong>
+                  <span>Estimated Travel Time</span>
+                  <strong style={{ color: '#16a34a' }}>{selectedLocation.travel_time_mins} mins drive</strong>
                 </div>
                 <div className="im-details__row">
-                  <span>Products Inspected</span>
-                  <strong>{selectedLocation.products.length > 0 ? selectedLocation.products.join(', ') : 'None'}</strong>
+                  <span>Rating</span>
+                  <strong>⭐ {selectedLocation.rating} / 5.0</strong>
                 </div>
-                <div className="im-details__row">
-                  <span>Open Complaints</span>
-                  <strong style={{ color: selectedLocation.openComplaints > 0 ? '#d32f2f' : 'inherit' }}>
-                    {selectedLocation.openComplaints}
-                  </strong>
-                </div>
-                <div className="im-details__row">
-                  <span>Latest Status</span>
-                  <Badge variant={selectedLocation.priority === 'high' ? 'error' : selectedLocation.priority === 'medium' ? 'warning' : 'success'} size="sm">
-                    {selectedLocation.latestStatus}
-                  </Badge>
-                </div>
+
                 <div className="im-details__actions">
-                  <Button variant="primary" size="sm" onClick={handleStartInspection}>
-                    Start Inspection
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    fullWidth={true}
+                    onClick={() => handleNavigateGoogleMaps(selectedLocation)}
+                  >
+                    🧭 Navigate on Google Maps
                   </Button>
-                  <Button variant="secondary" size="sm" onClick={() => handleViewInspections(selectedLocation)}>
-                    View Inspections
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    fullWidth={true}
+                    onClick={() => navigate('/employee/inspection/new')}
+                  >
+                    📝 Start Inspection Here
                   </Button>
                 </div>
               </CardBody>
@@ -392,114 +313,48 @@ export const InspectionMap: React.FC = () => {
         </div>
       </div>
 
-      <style>{imStyles}</style>
+      <style>{`
+        .im-page { max-width: 1400px; margin: 0 auto; }
+        .im-header { margin-bottom: var(--space-4); }
+        .im-body { display: grid; grid-template-columns: 340px 1fr; gap: var(--space-4); align-items: flex-start; }
+        @media (max-width: 900px) { .im-body { grid-template-columns: 1fr; } }
+        .im-sidebar { display: flex; flex-direction: column; gap: var(--space-3); }
+        .im-filters { display: flex; flex-direction: column; gap: var(--space-2); }
+        .im-filter-select {
+          padding: var(--space-2) var(--space-3);
+          border: 1px solid var(--color-gray-300);
+          border-radius: var(--radius-md);
+          font-size: var(--font-size-sm);
+          width: 100%;
+        }
+        .im-location-list { display: flex; flex-direction: column; gap: var(--space-2); max-height: 480px; overflow-y: auto; }
+        .im-location-item {
+          padding: var(--space-3);
+          background: var(--color-gray-50);
+          border: 1px solid var(--color-gray-200);
+          border-radius: var(--radius-md);
+          cursor: pointer;
+          text-align: left;
+          width: 100%;
+          transition: all 0.2s ease;
+        }
+        .im-location-item:hover, .im-location-item--selected {
+          background: var(--color-navy-50);
+          border-color: var(--color-navy-400);
+        }
+        .im-location-item__name { font-size: 14px; font-weight: 600; color: var(--color-navy-900); }
+        .im-location-item__address { font-size: 12px; color: var(--color-gray-600); margin-top: 2px; }
+        .im-location-item__meta { display: flex; gap: 12px; margin-top: 6px; font-size: 11px; color: var(--color-gray-600); font-weight: 500; }
+        .im-map-area { position: relative; }
+        .im-map { width: 100%; height: 600px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--color-gray-200); }
+        .im-details { margin-top: var(--space-3); border: 2px solid var(--color-navy-300); }
+        .im-details__close { background: none; border: none; cursor: pointer; color: var(--color-gray-600); font-size: 1.2rem; }
+        .im-details__row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 8px 0; border-bottom: 1px solid var(--color-gray-100); }
+        .im-details__row span { color: var(--color-gray-600); font-weight: 500; }
+        .im-details__actions { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-4); }
+      `}</style>
     </div>
   );
 };
 
 export default InspectionMap;
-
-/* ==========================================================================
-   Styles
-   ========================================================================== */
-
-const imStyles = `
-  .im-page { max-width: 1400px; margin: 0 auto; }
-  .im-header { margin-bottom: var(--space-4); }
-
-  .im-body { display: grid; grid-template-columns: 300px 1fr; gap: var(--space-4); align-items: flex-start; }
-  @media (max-width: 900px) { .im-body { grid-template-columns: 1fr; } }
-
-  /* Sidebar */
-  .im-sidebar { display: flex; flex-direction: column; gap: var(--space-3); }
-  .im-count { background: var(--color-navy-100); color: var(--color-navy-700); padding: 2px 8px; border-radius: 12px; font-size: var(--font-size-xs); }
-
-  /* Filters */
-  .im-filters { display: flex; flex-direction: column; gap: var(--space-2); }
-  .im-filter-group { display: flex; flex-direction: column; gap: var(--space-1); }
-  .im-filter-label { font-size: 11px; color: var(--color-gray-500); text-transform: uppercase; letter-spacing: 0.3px; font-weight: var(--font-weight-bold); }
-  .im-filter-select {
-    padding: var(--space-2) var(--space-3);
-    border: 1px solid var(--color-gray-300);
-    border-radius: var(--radius-md);
-    font-family: inherit;
-    font-size: var(--font-size-sm);
-    color: var(--color-navy-900);
-    background: var(--color-white);
-  }
-  .im-filter-select:focus { outline: none; border-color: var(--color-navy-500); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-
-  /* Legend */
-  .im-legend { display: flex; flex-direction: column; gap: var(--space-2); }
-  .im-legend__row { display: flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-sm); color: var(--color-gray-700); }
-  .im-legend__dot {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    border: 2px solid;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 12px;
-  }
-
-  /* Location list */
-  .im-location-list { display: flex; flex-direction: column; gap: var(--space-2); max-height: 400px; overflow-y: auto; }
-  .im-location-item {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-2);
-    padding: var(--space-2);
-    background: var(--color-gray-50);
-    border: 1px solid var(--color-gray-200);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    text-align: left;
-    font-family: inherit;
-    transition: all var(--transition-fast);
-  }
-  .im-location-item:hover { background: var(--color-navy-50); border-color: var(--color-navy-300); }
-  .im-location-item__dot {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    border: 2px solid;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 11px;
-    flex-shrink: 0;
-  }
-  .im-location-item__body { flex: 1; min-width: 0; }
-  .im-location-item__name { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--color-navy-900); }
-  .im-location-item__address { font-size: 11px; color: var(--color-gray-600); }
-  .im-location-item__meta { display: flex; align-items: center; gap: var(--space-2); margin-top: 4px; font-size: 11px; color: var(--color-gray-500); }
-
-  /* Map area */
-  .im-map-area { position: relative; }
-  .im-map {
-    width: 100%;
-    height: 600px;
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    border: 1px solid var(--color-gray-200);
-  }
-  @media (max-width: 768px) { .im-map { height: 400px; } }
-
-  /* Location details */
-  .im-details { margin-top: var(--space-3); }
-  .im-details__close {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--color-gray-600);
-    font-size: 1.1rem;
-    padding: var(--space-1);
-    line-height: 1;
-  }
-  .im-details__row { display: flex; justify-content: space-between; align-items: center; font-size: var(--font-size-sm); padding: var(--space-2) 0; border-bottom: 1px solid var(--color-gray-100); }
-  .im-details__row span { color: var(--color-gray-500); font-size: 11px; text-transform: uppercase; }
-  .im-details__actions { display: flex; gap: var(--space-2); margin-top: var(--space-3); }
-`;

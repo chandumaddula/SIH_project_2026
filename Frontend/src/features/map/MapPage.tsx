@@ -1,142 +1,215 @@
 import React, { useEffect, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MarketLocation } from '../../types/map';
-import { mockLocations } from '../../services/mockData';
-import { Loading } from '../../components/Loading';
 import { Card, CardHeader, CardBody, CardTitle } from '../../components/Card';
+import { Button } from '../../components/Button';
+
+export interface NearbyLocation {
+  id: string;
+  name: string;
+  category: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  distance_km: number;
+  travel_time_mins: number;
+  rating: number;
+  google_maps_url: string;
+}
 
 export const MapPage: React.FC = () => {
-  const [map, setMap] = useState<L.Map | null>(null);
-  const [locations] = useState<MarketLocation[]>(mockLocations);
-  const [loading, setLoading] = useState(true);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>({ lat: 28.6139, lng: 77.2090 });
+  const [locations, setLocations] = useState<NearbyLocation[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<NearbyLocation | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
+  const [markerLayer, setMarkerLayer] = useState<L.LayerGroup | null>(null);
+  const [locating, setLocating] = useState(false);
+
+  const fetchNearbyLocations = async (lat: number, lng: number, category: string = 'all') => {
+    try {
+      const response = await fetch(
+        `/api/v1/locations/nearby?latitude=${lat}&longitude=${lng}&category=${category}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setLocations(data.locations || []);
+      }
+    } catch (e) {
+      console.warn('Backend offline');
+    }
+  };
+
+  const handleGetCurrentLocation = () => {
+    if ('geolocation' in navigator) {
+      setLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          setUserCoords({ lat, lng });
+          fetchNearbyLocations(lat, lng, categoryFilter);
+          if (mapInstance) {
+            mapInstance.setView([lat, lng], 13);
+          }
+          setLocating(false);
+        },
+        (error) => {
+          console.error(error);
+          fetchNearbyLocations(userCoords.lat, userCoords.lng, categoryFilter);
+          setLocating(false);
+        }
+      );
+    } else {
+      fetchNearbyLocations(userCoords.lat, userCoords.lng, categoryFilter);
+    }
+  };
 
   useEffect(() => {
-    // Initialize Leaflet map after DOM is ready
-    const mapElement = document.getElementById('map');
-    if (!mapElement) return;
-
-    setTimeout(() => {
-      const instance = L.map('map', {
-        center: [40.7500, -73.9800] as L.LatLngExpression, // Default: New York City area
-        zoom: 11,
-        preferCanvas: true,
-        attributionControl: false,
-      });
-
-      // Add OpenStreetMap tile layer
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
-      }).addTo(instance);
-
-      // Add markers for each location
-      locations.forEach((location) => {
-        const marker = L.marker(location.coords as L.LatLngExpression, {
-          icon: L.divIcon({
-            html: `
-              <div style="
-                background: #3f51b5;
-                color: white;
-                width: 24px;
-                height: 24px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 0.7rem;
-                font-weight: bold;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-              ">
-                ${location.name.charAt(0)}
-              </div>
-            `,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12],
-          }),
-        }).addTo(instance);
-
-        marker.bindPopup(`
-          <b>${location.name}</b><br>
-          <small>${location.address}</small><br>
-          <small>Type: ${location.type}</small>
-        `);
-      });
-
-      // Fit bounds to show all markers
-      if (locations.length > 0) {
-        const bounds = L.latLngBounds(
-          locations.map((loc) => L.latLng(loc.coords as L.LatLngExpression))
-        );
-        instance.fitBounds(bounds, { padding: [20, 20] });
-      }
-
-      setMap(instance);
-      setLoading(false);
-    }, 100);
+    handleGetCurrentLocation();
   }, []);
 
   useEffect(() => {
+    const mapElement = document.getElementById('map');
+    if (!mapElement || mapInstance) return;
+
+    const instance = L.map('map', {
+      center: [userCoords.lat, userCoords.lng],
+      zoom: 13,
+      preferCanvas: true,
+      attributionControl: false,
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(instance);
+
+    const layer = L.layerGroup().addTo(instance);
+    setMapInstance(instance);
+    setMarkerLayer(layer);
+
     return () => {
-      if (map) {
-        map.remove();
-      }
+      instance.remove();
     };
-  }, [map]);
+  }, []);
+
+  useEffect(() => {
+    if (!markerLayer || !mapInstance) return;
+    markerLayer.clearLayers();
+
+    L.marker([userCoords.lat, userCoords.lng], {
+      icon: L.divIcon({
+        html: `<div style="background:#2563eb; color:white; width:34px; height:34px; border-radius:50%; border:3px solid white; display:flex; align-items:center; justify-content:center; font-size:16px;">📍</div>`,
+        iconSize: [34, 34],
+        iconAnchor: [17, 17],
+      })
+    }).addTo(markerLayer);
+
+    locations.forEach((loc) => {
+      const markerColor = loc.category === 'Supermarket' ? '#16a34a' : loc.category === 'Shopping Mall' ? '#9333ea' : '#ea580c';
+      const marker = L.marker([loc.latitude, loc.longitude], {
+        icon: L.divIcon({
+          html: `<div style="background:${markerColor}; color:white; width:30px; height:30px; border-radius:50%; border:2px solid white; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:bold;">🏢</div>`,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15],
+        })
+      }).addTo(markerLayer);
+
+      marker.on('click', () => setSelectedLocation(loc));
+    });
+
+    if (locations.length > 0) {
+      const allCoords = [[userCoords.lat, userCoords.lng], ...locations.map(l => [l.latitude, l.longitude])];
+      mapInstance.fitBounds(L.latLngBounds(allCoords as L.LatLngBoundsLiteral), { padding: [40, 40] });
+    }
+  }, [markerLayer, locations, userCoords, mapInstance]);
 
   return (
     <div className="page">
-      {loading && <Loading size="md" text="Loading map..." />}
-
-      <div className="page-header">
-        <h1 className="page-title">Map</h1>
-        <p className="page-subtitle">Market/Retail locations for inspections</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 className="page-title">Market & Retail Locations Map</h1>
+          <p className="page-subtitle">Real-time nearby establishments search & navigation</p>
+        </div>
+        <Button variant="primary" onClick={handleGetCurrentLocation} loading={locating}>
+          📍 Get Current Location
+        </Button>
       </div>
 
-      <div id="map" style={{ height: 'calc(100vh - 200px)', borderRadius: '8px', overflow: 'hidden' }} aria-label="Market locations map"></div>
+      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '1rem', marginTop: '1rem' }}>
+        <div>
+          <Card>
+            <CardHeader><CardTitle>Nearby Stores ({locations.length})</CardTitle></CardHeader>
+            <CardBody>
+              <select
+                style={{ width: '100%', padding: '8px', marginBottom: '12px', borderRadius: '6px' }}
+                value={categoryFilter}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  fetchNearbyLocations(userCoords.lat, userCoords.lng, e.target.value);
+                }}
+              >
+                <option value="all">All Categories</option>
+                <option value="Supermarket">Supermarkets</option>
+                <option value="Grocery Store">Grocery Stores</option>
+                <option value="Retail Store">Retail Stores</option>
+                <option value="Shopping Mall">Shopping Malls</option>
+                <option value="Market">Markets</option>
+              </select>
 
-      <div className="page-content">
-        <Card className="map__locations">
-          <CardHeader>
-            <CardTitle>Market/Retail Locations</CardTitle>
-          </CardHeader>
-          <CardBody>
-            {locations.map((location) => (
-              <div key={location.id} className="map__location-item">
-                <div className="map__location-icon">
-                  <span style={{ background: '#3f51b5', color: 'white', width: 24, height: 24, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                    {location.name.charAt(0)}
-                  </span>
-                </div>
-                <div className="map__location-details">
-                  <h4 className="map__location-name">{location.name}</h4>
-                  <p className="map__location-address">{location.address}</p>
-                  <div className="map__location-type">
-                    <span style={{ color: '#3f51b5' }}>{location.type}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '450px', overflowY: 'auto' }}>
+                {locations.map((loc) => (
+                  <div
+                    key={loc.id}
+                    onClick={() => setSelectedLocation(loc)}
+                    style={{
+                      padding: '10px',
+                      borderRadius: '6px',
+                      background: selectedLocation?.id === loc.id ? '#eff6ff' : '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: '13px' }}>{loc.name}</div>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>{loc.address}</div>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '4px', fontSize: '11px', fontWeight: 600, color: '#2563eb' }}>
+                      <span>📍 {loc.distance_km} km</span>
+                      <span>⏱️ {loc.travel_time_mins} mins</span>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </CardBody>
-        </Card>
+            </CardBody>
+          </Card>
+        </div>
 
-        <Card className="map__info">
-          <CardHeader>
-            <CardTitle>Map Information</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <p className="map__info-text">
-              The map above shows retail and market locations relevant to
-              metrology inspections. These locations can be used to plan
-              inspection routes and track visited sites.
-            </p>
-            <p className="map__info-text">
-              Phase 1: Using OpenStreetMap (no API key required). Production
-              deployment may integrate additional mapping providers.
-            </p>
-          </CardBody>
-        </Card>
+        <div>
+          <div id="map" style={{ height: '550px', borderRadius: '8px', overflow: 'hidden' }}></div>
+
+          {selectedLocation && (
+            <div style={{ marginTop: '12px' }}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>{selectedLocation.name}</CardTitle>
+                </CardHeader>
+                <CardBody>
+                  <p><strong>Category:</strong> {selectedLocation.category}</p>
+                  <p><strong>Address:</strong> {selectedLocation.address}</p>
+                  <p><strong>Distance:</strong> {selectedLocation.distance_km} km</p>
+                  <p><strong>Travel Time:</strong> {selectedLocation.travel_time_mins} mins drive</p>
+                  <Button
+                    variant="primary"
+                    style={{ marginTop: '10px' }}
+                    onClick={() => window.open(selectedLocation.google_maps_url, '_blank')}
+                  >
+                    🧭 Navigate on Google Maps
+                  </Button>
+                </CardBody>
+              </Card>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

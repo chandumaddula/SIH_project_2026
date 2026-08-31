@@ -10,6 +10,7 @@ interface UserStoreContextType {
   personType: UserRole | null;
   token: string | null;
   login: (identifier: string, password: string, personType: UserRole) => Promise<void>;
+  googleLogin: (personType: UserRole, googleEmail?: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -23,11 +24,19 @@ export const UserStoreProvider = (props: UserStoreProviderProps) => {
   const { children } = props;
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [personType, setPersonType] = useState<'employee' | 'citizen' | 'admin' | null>(null);
+  const [personType, setPersonType] = useState<UserRole | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
   const login = useCallback(async (identifier: string, password: string, personType: UserRole) => {
     const authState = await api.auth.login({ identifier, password }, personType);
+    setUser(authState.user);
+    setIsAuthenticated(true);
+    setPersonType(authState.personType);
+    setToken(authState.token);
+  }, []);
+
+  const googleLogin = useCallback(async (personType: UserRole, googleEmail?: string) => {
+    const authState = await api.auth.googleLogin(personType, googleEmail);
     setUser(authState.user);
     setIsAuthenticated(true);
     setPersonType(authState.personType);
@@ -48,8 +57,9 @@ export const UserStoreProvider = (props: UserStoreProviderProps) => {
     personType,
     token,
     login,
+    googleLogin,
     logout
-  }), [user, isAuthenticated, personType, token, login, logout]);
+  }), [user, isAuthenticated, personType, token, login, googleLogin, logout]);
 
   return React.createElement(
     UserStoreContext.Provider,

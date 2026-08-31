@@ -1,31 +1,49 @@
+from typing import Optional, Literal
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.database.session import get_db
-from app.schemas.user import UserCreate, UserLogin, UserResponse, Token
+from app.schemas.auth import UserLoginRequest, UserCreateRequest, AuthTokenResponse
 from app.services import auth_service
-from app.core.security import create_access_token
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-@router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
-def register_user(user_in: UserCreate, db: Session = Depends(get_db)):
-    existing_user = auth_service.get_user_by_email(db, email=user_in.email)
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A user with this email address already exists.",
-        )
-    user = auth_service.create_user(db, user_in)
-    access_token = create_access_token(subject=user.id)
-    return Token(access_token=access_token, token_type="bearer", user=UserResponse.model_validate(user))
+class GoogleAuthRequest(BaseModel):
+    email: Optional[str] = None
+    googleToken: Optional[str] = None
+    personType: Optional[Literal['employee', 'citizen', 'admin']] = 'citizen'
 
-@router.post("/login", response_model=Token)
-def login_user(credentials: UserLogin, db: Session = Depends(get_db)):
-    user = auth_service.authenticate_user(db, credentials.email, credentials.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password.",
-        )
-    access_token = create_access_token(subject=user.id)
-    return Token(access_token=access_token, token_type="bearer", user=UserResponse.model_validate(user))
+@router.post("/login", response_model=AuthTokenResponse)
+def login_user(payload: UserLoginRequest, db: Session = Depends(get_db)):
+    result = auth_service.authenticate_multi_role(
+        db=db,
+        identifier=payload.identifier,
+        password=payload.password,
+        person_type=payload.personType or "citizen",
+    )
+    return AuthTokenResponse(**result)
+
+@router.post("/register", response_model=AuthTokenResponse, status_code=status.HTTP_201_CREATED)
+def register_user(payload: UserCreateRequest, db: Session = Depends(get_db)):
+    result = auth_service.authenticate_multi_role(
+        db=db,
+        identifier=payload.email,
+        password=payload.password,
+        person_type=payload.role.lower() if payload.role else "citizen",
+    )
+    return AuthTokenResponse(**result)
+
+@router.post("/google", response_model=AuthTokenResponse)
+def login_google(payload: Optional[GoogleAuthRequest] = None, db: Session = Depends(get_db)):
+    person_type = payload.personType if payload else "citizen"
+    email = payload.email if payload else None
+    result = auth_service.authenticate_google_sso(
+        db=db,
+        email=email,
+        person_type=person_type,
+    )
+    return AuthTokenResponse(**result)
+
+@router.post("/logout")
+def logout_user():
+    return {"status": "success", "message": "Successfully logged out"}
