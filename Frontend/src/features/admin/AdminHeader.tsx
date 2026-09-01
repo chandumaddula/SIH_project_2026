@@ -42,6 +42,14 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onHamburgerClick, onSi
   });
   const timeStr = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 
+  // Admin-specific properties
+  const adminUser = user && user.role === 'admin'
+    ? (user as import('../../types/user').Admin)
+    : null;
+  const adminName = adminUser?.name || 'Administrator';
+  const adminId = adminUser?.adminId || '';
+  const adminDept = adminUser?.department || 'System Administration';
+
   return (
     <header className="adm-header">
       <div className="adm-header__left">
@@ -57,7 +65,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onHamburgerClick, onSi
           <div className="adm-header__brand-badge">ADMIN</div>
           <div className="adm-header__brand-text">
             <span className="adm-header__brand-title">Legal Metrology Compliance System</span>
-            <span className="adm-header__brand-sub">System Administration</span>
+            <span className="adm-header__brand-sub">{adminDept}</span>
           </div>
         </div>
       </div>
@@ -82,8 +90,10 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onHamburgerClick, onSi
             <IconUser />
           </div>
           <div className="adm-header__user-text">
-            <span className="adm-header__user-name">{user?.name || 'Administrator'}</span>
-            <span className="adm-header__user-role">System Administrator</span>
+            <span className="adm-header__user-name">{adminName}</span>
+            <span className="adm-header__user-role">
+              {adminId ? `${adminId} · ${adminDept}` : adminDept}
+            </span>
           </div>
         </div>
 

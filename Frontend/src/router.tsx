@@ -5,6 +5,8 @@ import { useUserStore } from './store';
 import { PersonSelector } from './features/auth/PersonSelector';
 import { Login } from './features/auth/Login';
 import { Register } from './features/auth/Register';
+import { AdminLoginPage } from './features/auth/AdminLoginPage';
+import { AdminMfaPage } from './features/auth/AdminMfaPage';
 import { Dashboard } from './features/dashboard/Dashboard';
 import { Home } from './features/home/Home';
 import { ScanPage } from './features/scan/ScanPage';
@@ -244,6 +246,15 @@ export const routes: RouteObject[] = [
       { path: 'settings', element: <CitizenSettings /> },
     ],
   },
+  {
+    path: '/admin/login',
+    element: <AdminLoginPage />,
+  },
+  {
+    path: '/admin/mfa',
+    element: <AdminMfaPage />,
+  },
+
   {
     path: '/admin',
     element: (

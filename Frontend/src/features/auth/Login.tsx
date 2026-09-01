@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Card } from '../../components/Card';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { useUserStore } from '../../store';
 import { PersonType } from './PersonSelector';
 
@@ -65,6 +65,13 @@ export const Login: React.FC = () => {
   const { login, googleLogin } = useUserStore();
 
   const personType = (location.state?.personType as PersonType) || 'employee';
+
+  // Admin login has its own dedicated flow with MFA
+  if (personType === 'admin') {
+    navigate('/admin/login', { replace: true });
+    return null;
+  }
+
   const config = roleConfig[personType];
 
   const getRedirectPath = (type: PersonType) => {
@@ -85,14 +92,14 @@ export const Login: React.FC = () => {
     setError('');
     setIsLoading(true);
 
-    try {
-      await login(identifier, password, personType);
-      navigate(getRedirectPath(personType));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid credentials. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+   try {
+  await login(identifier, password, personType);
+  navigate(getRedirectPath(personType));
+} catch (err) {
+  setError(err instanceof Error ? err.message : 'Invalid credentials. Please try again.');
+} finally {
+  setIsLoading(false);
+}
   };
 
   const handleGoogleSignIn = async () => {

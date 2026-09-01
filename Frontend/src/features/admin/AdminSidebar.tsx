@@ -3,7 +3,9 @@ import { NavLink, useLocation } from 'react-router-dom';
 
 interface AdminSidebarProps {
   isOpen: boolean;
+  isCollapsed?: boolean;
   onClose: () => void;
+  onCollapse?: (collapsed: boolean) => void;
   onSignOutClick: () => void;
 }
 
@@ -203,7 +205,9 @@ const NAV_GROUPS: NavGroup[] = [
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   isOpen,
+  isCollapsed = false,
   onClose,
+  onCollapse,
   onSignOutClick,
 }) => {
   const location = useLocation();
@@ -221,9 +225,16 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
   const isActive = (path: string) => location.pathname.startsWith(path);
 
+  const sidebarClass = [
+    'adm-sidebar',
+    isMobile ? 'adm-sidebar--mobile' : '',
+    isMobile && isOpen ? 'adm-sidebar--open' : '',
+    isCollapsed ? 'adm-sidebar--collapsed' : '',
+  ].filter(Boolean).join(' ');
+
   return (
     <>
-      <aside className={`adm-sidebar ${isMobile ? 'adm-sidebar--mobile' : ''} ${isMobile && isOpen ? 'adm-sidebar--open' : ''}`} aria-label="Admin navigation">
+      <aside className={sidebarClass} aria-label="Admin navigation">
         {/* Logo */}
         <div className="adm-sidebar__header">
           <div className="adm-sidebar__logo">
@@ -233,18 +244,39 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 <line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
             </div>
-            <div className="adm-sidebar__logo-text">
-              <span className="adm-sidebar__logo-title">LMCS Admin</span>
-              <span className="adm-sidebar__logo-sub">Control Center</span>
-            </div>
+            {!isCollapsed && (
+              <div className="adm-sidebar__logo-text">
+                <span className="adm-sidebar__logo-title">LMCS Admin</span>
+                <span className="adm-sidebar__logo-sub">Control Center</span>
+              </div>
+            )}
           </div>
+          {!isMobile && onCollapse && (
+            <button
+              className="adm-sidebar__collapse-btn"
+              onClick={() => onCollapse(!isCollapsed)}
+              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-expanded={!isCollapsed}
+              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {isCollapsed ? (
+                  <polyline points="9 18 15 12 9 6" />
+                ) : (
+                  <polyline points="15 18 9 12 15 6" />
+                )}
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Nav */}
         <nav className="adm-sidebar__nav">
           {NAV_GROUPS.map(group => (
             <div key={group.label} className="adm-sidebar__group">
-              <span className="adm-sidebar__group-label">{group.label}</span>
+              {!isCollapsed && (
+                <span className="adm-sidebar__group-label">{group.label}</span>
+              )}
               <ul className="adm-sidebar__group-items">
                 {group.items.map(item => {
                   const active = isActive(item.path);
@@ -256,9 +288,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                         end={item.path === '/admin/overview'}
                         onClick={() => { if (isMobile) onClose(); }}
                         aria-current={active ? 'page' : undefined}
+                        title={isCollapsed ? item.label : undefined}
                       >
                         <span className="adm-sidebar__link-icon">{item.icon}</span>
-                        <span className="adm-sidebar__link-label">{item.label}</span>
+                        {!isCollapsed && (
+                          <span className="adm-sidebar__link-label">{item.label}</span>
+                        )}
                       </NavLink>
                     </li>
                   );
@@ -275,9 +310,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   className="adm-sidebar__link adm-sidebar__link--signout"
                   onClick={() => { onSignOutClick(); onClose(); }}
                   aria-label="Sign out"
+                  title={isCollapsed ? 'Sign Out' : undefined}
                 >
                   <span className="adm-sidebar__link-icon"><IconSignOut /></span>
-                  <span className="adm-sidebar__link-label">Sign Out</span>
+                  {!isCollapsed && (
+                    <span className="adm-sidebar__link-label">Sign Out</span>
+                  )}
                 </button>
               </li>
             </ul>
@@ -286,8 +324,19 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
         {/* Footer */}
         <div className="adm-sidebar__footer">
-          <span className="adm-sidebar__footer-version">v1.0.0</span>
-          <span className="adm-sidebar__footer-env">Frontend Demo</span>
+          {!isCollapsed ? (
+            <div className="adm-sidebar__footer-brand">
+              <span className="adm-sidebar__footer-version">v1.0.0</span>
+              <span className="adm-sidebar__footer-env">Frontend Demo</span>
+            </div>
+          ) : (
+            <div className="adm-sidebar__footer-icon" title="LMCS Admin v1.0.0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -302,7 +351,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           display: flex;
           flex-direction: column;
           z-index: var(--z-sticky);
-          transition: transform 0.3s ease;
+          transition: width 0.3s ease, transform 0.3s ease;
           overflow-y: auto;
           overflow-x: hidden;
         }
@@ -316,12 +365,39 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           transform: translateX(0);
         }
 
+        .adm-sidebar--collapsed {
+          width: var(--sidebar-collapsed-width, 72px);
+        }
+
         /* Header */
         .adm-sidebar__header {
           padding: var(--space-4) var(--space-4);
           border-bottom: 1px solid rgba(255,255,255,0.08);
           flex-shrink: 0;
           background: #0f172a;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--space-2);
+        }
+
+        .adm-sidebar__collapse-btn {
+          background: rgba(255,255,255,0.06);
+          border: none;
+          cursor: pointer;
+          padding: var(--space-2);
+          color: rgba(148,163,184,0.85);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: var(--radius-md);
+          flex-shrink: 0;
+          transition: background-color var(--transition-fast), color var(--transition-fast);
+        }
+
+        .adm-sidebar__collapse-btn:hover {
+          background: rgba(255,255,255,0.12);
+          color: #f1f5f9;
         }
 
         .adm-sidebar__logo {
@@ -468,11 +544,31 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           color: rgba(252,129,129,0.5);
         }
 
+        /* Collapsed state */
+        .adm-sidebar--collapsed .adm-sidebar__logo {
+          gap: 0;
+        }
+
+        .adm-sidebar--collapsed .adm-sidebar__group {
+          padding: var(--space-2) var(--space-2);
+        }
+
+        .adm-sidebar--collapsed .adm-sidebar__link {
+          padding: var(--space-2);
+          justify-content: center;
+        }
+
         /* Footer */
         .adm-sidebar__footer {
           padding: var(--space-3) var(--space-4);
           border-top: 1px solid rgba(255,255,255,0.08);
           flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .adm-sidebar__footer-brand {
           display: flex;
           flex-direction: column;
           gap: 2px;
@@ -487,6 +583,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         .adm-sidebar__footer-env {
           font-size: 10px;
           color: #334155;
+        }
+
+        .adm-sidebar__footer-icon {
+          color: #475569;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         @media (min-width: 768px) {

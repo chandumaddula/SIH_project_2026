@@ -59,15 +59,19 @@ export const authService = {
     }
 
     if (personType === 'admin') {
-      const storedPassword = mockAdminPasswords[identifier];
-      if (!storedPassword || storedPassword !== password) {
-        throw new Error('Invalid admin ID or password');
-      }
-      const admin = mockAdmins.find(a => a.adminId === identifier);
+      const norm = identifier.trim().toLowerCase();
+      // Try to find admin by adminId OR email
+      const admin = mockAdmins.find(a =>
+        a.adminId.toLowerCase() === norm || a.email.toLowerCase() === norm
+      );
       if (!admin) {
         throw new Error('Admin not found');
       }
-      const token = `mock_token_adm_${identifier}_${Date.now()}`;
+      const storedPassword = mockAdminPasswords[admin.adminId];
+      if (!storedPassword || storedPassword !== password) {
+        throw new Error('Invalid admin ID or password');
+      }
+      const token = `mock_token_adm_${admin.adminId}_${Date.now()}`;
       return {
         user: admin,
         isAuthenticated: true,

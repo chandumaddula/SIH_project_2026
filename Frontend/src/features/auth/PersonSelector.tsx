@@ -15,7 +15,11 @@ export const PersonSelector: React.FC = () => {
 
   const handleContinue = () => {
     if (selectedPerson) {
-      navigate('/login', { state: { personType: selectedPerson } });
+      if (selectedPerson === 'admin') {
+        navigate('/admin/login');
+      } else {
+        navigate('/login', { state: { personType: selectedPerson } });
+      }
     }
   };
 

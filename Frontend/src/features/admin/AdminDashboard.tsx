@@ -16,12 +16,14 @@ const IconSignOut = () => (
 
 export const AdminDashboard: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [signOutModalOpen, setSignOutModalOpen] = useState(false);
   const { logout } = useUserStore();
   const navigate = useNavigate();
 
   const openSidebar = useCallback(() => setSidebarOpen(true), []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+  const toggleSidebarCollapse = useCallback((collapsed: boolean) => setSidebarCollapsed(collapsed), []);
 
   const openSignOutModal = useCallback(() => {
     setSignOutModalOpen(true);
@@ -37,10 +39,12 @@ export const AdminDashboard: React.FC = () => {
   }, [logout, navigate]);
 
   return (
-    <div className="adm-dashboard">
+    <div className={`adm-dashboard ${sidebarCollapsed ? 'adm-dashboard--sidebar-collapsed' : ''}`}>
       <AdminSidebar
         isOpen={sidebarOpen}
+        isCollapsed={sidebarCollapsed}
         onClose={closeSidebar}
+        onCollapse={toggleSidebarCollapse}
         onSignOutClick={openSignOutModal}
       />
 
@@ -95,6 +99,10 @@ export const AdminDashboard: React.FC = () => {
           transition: margin-left 0.3s ease;
         }
 
+        .adm-dashboard--sidebar-collapsed .adm-dashboard__content {
+          margin-left: var(--sidebar-collapsed-width, 72px);
+        }
+
         .adm-dashboard__overlay {
           position: fixed;
           top: 0;
@@ -130,7 +138,7 @@ export const AdminDashboard: React.FC = () => {
 
         @media (max-width: 1023px) {
           .adm-dashboard__content {
-            margin-left: var(--admin-sidebar-collapsed, 68px);
+            margin-left: var(--sidebar-collapsed-width, 72px);
           }
         }
 

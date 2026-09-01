@@ -17,12 +17,14 @@ const IconSignOut = () => (
 
 export const CitizenDashboard: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [signOutModalOpen, setSignOutModalOpen] = useState(false);
   const { logout } = useUserStore();
   const navigate = useNavigate();
 
   const openSidebar = useCallback(() => setSidebarOpen(true), []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+  const toggleSidebarCollapse = useCallback((collapsed: boolean) => setSidebarCollapsed(collapsed), []);
 
   const openSignOutModal = useCallback(() => {
     setSignOutModalOpen(true);
@@ -38,10 +40,12 @@ export const CitizenDashboard: React.FC = () => {
   }, [logout, navigate]);
 
   return (
-    <div className="cit-dashboard">
+    <div className={`cit-dashboard ${sidebarCollapsed ? 'cit-dashboard--sidebar-collapsed' : ''}`}>
       <CitizenSidebar
         isOpen={sidebarOpen}
+        isCollapsed={sidebarCollapsed}
         onClose={closeSidebar}
+        onCollapse={toggleSidebarCollapse}
         onSignOutClick={openSignOutModal}
       />
 
@@ -106,6 +110,10 @@ export const CitizenDashboard: React.FC = () => {
           transition: margin-left 0.3s ease;
         }
 
+        .cit-dashboard--sidebar-collapsed .cit-dashboard__content {
+          margin-left: var(--sidebar-collapsed-width, 72px);
+        }
+
         .cit-dashboard__overlay {
           position: fixed;
           top: 0;
@@ -141,12 +149,13 @@ export const CitizenDashboard: React.FC = () => {
 
         @media (max-width: 1023px) {
           .cit-dashboard__content {
-            margin-left: 0;
+            margin-left: var(--sidebar-collapsed-width, 72px);
           }
         }
 
         @media (max-width: 768px) {
           .cit-dashboard__content {
+            margin-left: 0;
             padding-top: var(--header-height-mobile);
             padding-bottom: calc(var(--citizen-bottomnav-height, 64px) + var(--space-4));
           }

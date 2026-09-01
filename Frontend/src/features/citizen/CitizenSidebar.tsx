@@ -120,7 +120,9 @@ const buildNavItems = (onSignOut: () => void): NavItem[] => [
 
 interface CitizenSidebarProps {
   isOpen: boolean;
+  isCollapsed?: boolean;
   onClose: () => void;
+  onCollapse?: (collapsed: boolean) => void;
   onSignOutClick: () => void;
 }
 
@@ -130,7 +132,9 @@ interface CitizenSidebarProps {
 
 export const CitizenSidebar: React.FC<CitizenSidebarProps> = ({
   isOpen,
+  isCollapsed = false,
   onClose,
+  onCollapse,
   onSignOutClick,
 }) => {
   const location = useLocation();
@@ -159,6 +163,7 @@ export const CitizenSidebar: React.FC<CitizenSidebarProps> = ({
     'cit-sidebar',
     isMobile ? 'cit-sidebar--mobile' : '',
     isMobile && isOpen ? 'cit-sidebar--open' : '',
+    isCollapsed ? 'cit-sidebar--collapsed' : '',
   ].filter(Boolean).join(' ');
 
   return (
@@ -170,17 +175,38 @@ export const CitizenSidebar: React.FC<CitizenSidebarProps> = ({
             <div className="cit-sidebar__logo-icon">
               <IconShield />
             </div>
-            <div className="cit-sidebar__logo-text">
-              <h2 className="cit-sidebar__logo-title">Legal Metrology</h2>
-              <p className="cit-sidebar__logo-subtitle">Citizen Portal</p>
-            </div>
+            {!isCollapsed && (
+              <div className="cit-sidebar__logo-text">
+                <h2 className="cit-sidebar__logo-title">Legal Metrology</h2>
+                <p className="cit-sidebar__logo-subtitle">Citizen Portal</p>
+              </div>
+            )}
           </div>
+          {!isMobile && onCollapse && (
+            <button
+              className="cit-sidebar__collapse-btn"
+              onClick={() => onCollapse(!isCollapsed)}
+              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-expanded={!isCollapsed}
+              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                {isCollapsed ? (
+                  <polyline points="9 18 15 12 9 6" />
+                ) : (
+                  <polyline points="15 18 9 12 15 6" />
+                )}
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Role badge */}
-        <div className="cit-sidebar__role">
-          <Badge variant="success" size="sm">Verified Consumer</Badge>
-        </div>
+        {!isCollapsed && (
+          <div className="cit-sidebar__role">
+            <Badge variant="success" size="sm">Verified Consumer</Badge>
+          </div>
+        )}
 
         {/* Navigation */}
         <nav className="cit-sidebar__nav">
@@ -199,9 +225,12 @@ export const CitizenSidebar: React.FC<CitizenSidebarProps> = ({
                         onClose();
                       }}
                       aria-label="Sign out"
+                      title={isCollapsed ? 'Sign Out' : undefined}
                     >
                       <span className="cit-sidebar__nav-icon">{item.icon}</span>
-                      <span className="cit-sidebar__nav-text">{item.label}</span>
+                      {!isCollapsed && (
+                        <span className="cit-sidebar__nav-text">{item.label}</span>
+                      )}
                     </button>
                   </li>
                 );
@@ -217,9 +246,12 @@ export const CitizenSidebar: React.FC<CitizenSidebarProps> = ({
                       if (isMobile) onClose();
                     }}
                     aria-current={active ? 'page' : undefined}
+                    title={isCollapsed ? item.label : undefined}
                   >
                     <span className="cit-sidebar__nav-icon">{item.icon}</span>
-                    <span className="cit-sidebar__nav-text">{item.label}</span>
+                    {!isCollapsed && (
+                      <span className="cit-sidebar__nav-text">{item.label}</span>
+                    )}
                   </NavLink>
                 </li>
               );
@@ -229,10 +261,18 @@ export const CitizenSidebar: React.FC<CitizenSidebarProps> = ({
 
         {/* Footer */}
         <div className="cit-sidebar__footer">
-          <div className="cit-sidebar__footer-brand">
-            <span className="cit-sidebar__footer-version">LMCS v1.0</span>
-            <span className="cit-sidebar__footer-sub">Legal Metrology Compliance System</span>
-          </div>
+          {!isCollapsed ? (
+            <div className="cit-sidebar__footer-brand">
+              <span className="cit-sidebar__footer-version">LMCS v1.0</span>
+              <span className="cit-sidebar__footer-sub">Legal Metrology Compliance System</span>
+            </div>
+          ) : (
+            <div className="cit-sidebar__footer-icon" title="LMCS v1.0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -248,8 +288,8 @@ export const CitizenSidebar: React.FC<CitizenSidebarProps> = ({
           display: flex;
           flex-direction: column;
           z-index: var(--z-sticky);
-          transition: transform 0.3s ease;
-          overflow-y: auto;
+          transition: width 0.3s ease, transform 0.3s ease;
+          overflow: hidden;
         }
 
         .cit-sidebar--mobile {
@@ -261,19 +301,46 @@ export const CitizenSidebar: React.FC<CitizenSidebarProps> = ({
           transform: translateX(0);
         }
 
+        .cit-sidebar--collapsed {
+          width: var(--sidebar-collapsed-width, 72px);
+        }
+
         .cit-sidebar__header {
           padding: var(--space-5) var(--space-4);
           border-bottom: 1px solid var(--color-gray-200);
           display: flex;
           align-items: center;
+          justify-content: space-between;
+          gap: var(--space-2);
           flex-shrink: 0;
           background: linear-gradient(135deg, var(--color-navy-700) 0%, var(--color-navy-800) 100%);
+        }
+
+        .cit-sidebar__collapse-btn {
+          background: rgba(255, 255, 255, 0.1);
+          border: none;
+          cursor: pointer;
+          padding: var(--space-2);
+          color: rgba(255, 255, 255, 0.85);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: var(--radius-md);
+          flex-shrink: 0;
+          transition: background-color var(--transition-fast), color var(--transition-fast);
+        }
+
+        .cit-sidebar__collapse-btn:hover {
+          background: rgba(255, 255, 255, 0.2);
+          color: #ffffff;
         }
 
         .cit-sidebar__logo {
           display: flex;
           align-items: center;
           gap: var(--space-3);
+          overflow: hidden;
+          flex: 1;
         }
 
         .cit-sidebar__logo-icon {
@@ -290,6 +357,7 @@ export const CitizenSidebar: React.FC<CitizenSidebarProps> = ({
 
         .cit-sidebar__logo-text {
           overflow: hidden;
+          min-width: 0;
         }
 
         .cit-sidebar__logo-title {
@@ -298,6 +366,7 @@ export const CitizenSidebar: React.FC<CitizenSidebarProps> = ({
           color: var(--color-white);
           margin: 0;
           line-height: 1.2;
+          white-space: nowrap;
         }
 
         .cit-sidebar__logo-subtitle {
@@ -308,7 +377,7 @@ export const CitizenSidebar: React.FC<CitizenSidebarProps> = ({
         }
 
         .cit-sidebar__role {
-          padding: var(--space-3) var(--space-5);
+          padding: var(--space-3) var(--space-4);
           border-bottom: 1px solid var(--color-gray-200);
           flex-shrink: 0;
         }
@@ -403,6 +472,21 @@ export const CitizenSidebar: React.FC<CitizenSidebarProps> = ({
           color: var(--color-error-600);
         }
 
+        /* Collapsed state overrides */
+        .cit-sidebar--collapsed .cit-sidebar__logo {
+          gap: 0;
+        }
+
+        .cit-sidebar--collapsed .cit-sidebar__logo-icon {
+          width: 36px;
+          height: 36px;
+        }
+
+        .cit-sidebar--collapsed .cit-sidebar__nav-link {
+          padding: var(--space-3);
+          justify-content: center;
+        }
+
         .cit-sidebar__footer {
           padding: var(--space-4) var(--space-5);
           border-top: 1px solid var(--color-gray-200);
@@ -428,6 +512,13 @@ export const CitizenSidebar: React.FC<CitizenSidebarProps> = ({
           font-size: 10px;
           color: var(--color-gray-500);
           margin-top: 2px;
+        }
+
+        .cit-sidebar__footer-icon {
+          color: var(--color-gray-400);
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         @media (max-width: 768px) {

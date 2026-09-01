@@ -16,12 +16,14 @@ const IconSignOut = () => (
 
 export const EmployeeDashboard: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [signOutModalOpen, setSignOutModalOpen] = useState(false);
   const { logout } = useUserStore();
   const navigate = useNavigate();
 
   const openSidebar = useCallback(() => setSidebarOpen(true), []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+  const toggleSidebarCollapse = useCallback((collapsed: boolean) => setSidebarCollapsed(collapsed), []);
 
   const openSignOutModal = useCallback(() => {
     setSignOutModalOpen(true);
@@ -38,10 +40,12 @@ export const EmployeeDashboard: React.FC = () => {
   }, [logout, navigate]);
 
   return (
-    <div className="emp-dashboard">
+    <div className={`emp-dashboard ${sidebarCollapsed ? 'emp-dashboard--sidebar-collapsed' : ''}`}>
       <EmployeeSidebar
         isOpen={sidebarOpen}
+        isCollapsed={sidebarCollapsed}
         onClose={closeSidebar}
+        onCollapse={toggleSidebarCollapse}
         onSignOutClick={openSignOutModal}
       />
 
@@ -103,6 +107,10 @@ export const EmployeeDashboard: React.FC = () => {
           min-height: 100vh;
           background-color: var(--color-gray-100);
           transition: margin-left 0.3s ease;
+        }
+
+        .emp-dashboard--sidebar-collapsed .emp-dashboard__content {
+          margin-left: var(--sidebar-collapsed-width);
         }
 
         .emp-dashboard__overlay {

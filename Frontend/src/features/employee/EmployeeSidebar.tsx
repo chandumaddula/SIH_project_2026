@@ -12,7 +12,9 @@ interface NavItem {
 
 interface EmployeeSidebarProps {
   isOpen: boolean;
+  isCollapsed: boolean;
   onClose: () => void;
+  onCollapse: (collapsed: boolean) => void;
   onSignOutClick: () => void;
 }
 
@@ -151,22 +153,20 @@ const buildNavItems = (onSignOut: () => void): NavItem[] => [
 
 export const EmployeeSidebar: React.FC<EmployeeSidebarProps> = ({
   isOpen,
+  isCollapsed,
   onClose,
+  onCollapse,
   onSignOutClick,
 }) => {
   const location = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
 
-  // Detect responsive breakpoints
+  // Detect mobile breakpoint
   useEffect(() => {
     const handleResize = () => {
       const w = window.innerWidth;
       setIsMobile(w < 768);
-      setIsTablet(w >= 768 && w < 1024);
-      if (w >= 1024) {
-        // On desktop, close mobile overlay if any
+      if (w >= 768) {
         onClose();
       }
     };
@@ -174,10 +174,13 @@ export const EmployeeSidebar: React.FC<EmployeeSidebarProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [onClose]);
 
-  // Collapse sidebar on tablet
+  // Auto-collapse on tablet (768px–1023px)
   useEffect(() => {
-    setIsCollapsed(isTablet);
-  }, [isTablet]);
+    const w = window.innerWidth;
+    if (w >= 768 && w < 1024) {
+      onCollapse(true);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const navItems = buildNavItems(onSignOutClick);
 
@@ -211,9 +214,10 @@ export const EmployeeSidebar: React.FC<EmployeeSidebarProps> = ({
           {!isMobile && (
             <button
               className="emp-sidebar__collapse-btn"
-              onClick={() => setIsCollapsed(prev => !prev)}
+              onClick={() => onCollapse(!isCollapsed)}
               aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              title={isCollapsed ? 'Expand' : 'Collapse'}
+              aria-expanded={!isCollapsed}
+              title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 {isCollapsed ? (
