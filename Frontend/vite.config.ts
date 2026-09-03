@@ -6,11 +6,14 @@ export default defineConfig({
   base: './',
   build: {
     outDir: 'dist',
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          router: ['react-router-dom']
+          router: ['react-router-dom'],
+          charts: ['recharts'],
+          maps: ['leaflet']
         }
       }
     }

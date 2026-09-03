@@ -28,17 +28,10 @@ const initialIsAuthenticated = !!(initialUser && initialToken && initialPersonTy
 
 export const UserStoreProvider = (props: UserStoreProviderProps) => {
   const { children } = props;
- HEAD
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [personType, setPersonType] = useState<UserRole | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-=======
   const [user, setUser] = useState<AuthUser | null>(initialUser);
   const [isAuthenticated, setIsAuthenticated] = useState(initialIsAuthenticated);
   const [personType, setPersonType] = useState<UserRole | null>(initialPersonType);
   const [token, setToken] = useState<string | null>(initialToken);
->>>>>>> 116b8a1 (Update frontend authentication and dashboards)
 
   const login = useCallback(async (identifier: string, password: string, personType: UserRole) => {
     const authState = await api.auth.login({ identifier, password }, personType);
