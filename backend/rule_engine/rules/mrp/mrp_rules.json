@@ -1,0 +1,102 @@
+[
+  {
+    "identification": {
+      "rule_id": "MRP-001",
+      "rule_reference": "Rule 6(1)(e)",
+      "version": "1.0",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "all",
+      "exemptions": ["EXM-001", "EXM-002"]
+    },
+    "validation": {
+      "field": "mrp",
+      "condition": "presence",
+      "validation_type": "presence_check",
+      "validation_method": "check_mrp_presence"
+    },
+    "result": {
+      "severity": "CRITICAL",
+      "evidence_required": ["ocr_text", "bounding_box"],
+      "description": "Maximum Retail Price (MRP) must be clearly declared on every outer package."
+    },
+    "category": "mrp"
+  },
+  {
+    "identification": {
+      "rule_id": "MRP-002",
+      "rule_reference": "Rule 6(1)(e)",
+      "version": "1.0",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "all",
+      "exemptions": ["EXM-001"]
+    },
+    "validation": {
+      "field": "mrp",
+      "condition": "format_and_taxes",
+      "validation_type": "regex_match",
+      "validation_method": "check_mrp_format"
+    },
+    "result": {
+      "severity": "HIGH",
+      "evidence_required": ["ocr_text"],
+      "description": "MRP declaration must include currency symbol (Rs / ₹) and mandatory phrase '(inclusive of all taxes)' or 'incl. of all taxes'."
+    },
+    "category": "mrp"
+  },
+  {
+    "identification": {
+      "rule_id": "MRP-003",
+      "rule_reference": "Rule 6(1)(11)",
+      "version": "1.1",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "all",
+      "exemptions": ["EXM-001"]
+    },
+    "validation": {
+      "field": "unit_sale_price",
+      "condition": "presence_and_calculation",
+      "validation_type": "unit_price_parser",
+      "validation_method": "check_unit_sale_price"
+    },
+    "result": {
+      "severity": "MEDIUM",
+      "evidence_required": ["ocr_text"],
+      "description": "Unit Sale Price must be declared per g/ml or per kg/l for packages > 1 kg/1 L."
+    },
+    "category": "mrp"
+  },
+  {
+    "identification": {
+      "rule_id": "MRP-004",
+      "rule_reference": "Rule 18(2A)",
+      "version": "1.0",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "all",
+      "exemptions": []
+    },
+    "validation": {
+      "field": "mrp",
+      "condition": "dual_pricing_prohibition",
+      "validation_type": "sticker_detector",
+      "validation_method": "check_dual_pricing"
+    },
+    "result": {
+      "severity": "CRITICAL",
+      "evidence_required": ["bounding_box", "image_crop"],
+      "description": "Dual pricing or altered higher MRP stickers over original print is strictly prohibited."
+    },
+    "category": "mrp"
+  }
+]

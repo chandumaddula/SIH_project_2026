@@ -12,10 +12,10 @@ from app import models
 from app.core.logging_config import setup_logging
 
 from app.api.v1.auth import router as auth_router
+from app.api.v1.scans import router as scans_v1_router
 from app.api import (
     users,
     products,
-    scans,
     compliance,
     inspections,
     complaints,
@@ -27,9 +27,12 @@ from app.api import (
 setup_logging()
 logger = logging.getLogger(__name__)
 
-# Initialize Database tables
-Base.metadata.create_all(bind=engine)
-logger.info("FastAPI application started")
+# Initialize Database tables safely
+try:
+    Base.metadata.create_all(bind=engine)
+    logger.info("FastAPI database tables initialized")
+except Exception as db_err:
+    logger.warning("Database table creation skipped on import (DB offline or unreachable): %s", db_err)
 
 # Ensure storage directories exist
 os.makedirs("storage/scans", exist_ok=True)
@@ -57,14 +60,10 @@ app.add_middleware(
 )
 
 # Include Routers
-app.include_router(
-    auth_router,
-    prefix="/api/v1",
-)
+app.include_router(auth_router, prefix="/api/v1")
+app.include_router(scans_v1_router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(products.router, prefix="/api/v1")
-app.include_router(scans.router, prefix="/api/v1")
-app.include_router(scans.router, prefix="/api")
 app.include_router(compliance.router, prefix="/api/v1")
 app.include_router(inspections.router, prefix="/api/v1")
 app.include_router(complaints.router, prefix="/api/v1")

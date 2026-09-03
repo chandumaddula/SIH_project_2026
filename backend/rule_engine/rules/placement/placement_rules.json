@@ -1,0 +1,27 @@
+[
+  {
+    "identification": {
+      "rule_id": "PLACE-001",
+      "rule_reference": "Rule 8",
+      "version": "1.0",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "all",
+      "exemptions": ["EXM-001"]
+    },
+    "validation": {
+      "field": "pdp_placement",
+      "condition": "pdp_visibility",
+      "validation_type": "pdp_layout_checker",
+      "validation_method": "check_pdp_placement"
+    },
+    "result": {
+      "severity": "MEDIUM",
+      "evidence_required": ["pdp_dimensions", "label_region"],
+      "description": "All mandatory declarations must be placed on the Principal Display Panel (PDP) and clearly legible."
+    },
+    "category": "placement"
+  }
+]

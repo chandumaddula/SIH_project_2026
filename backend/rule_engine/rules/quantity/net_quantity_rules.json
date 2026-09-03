@@ -1,0 +1,77 @@
+[
+  {
+    "identification": {
+      "rule_id": "QTY-001",
+      "rule_reference": "Rule 6(1)(c)",
+      "version": "1.0",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "all",
+      "exemptions": ["EXM-001", "EXM-002"]
+    },
+    "validation": {
+      "field": "net_quantity",
+      "condition": "presence",
+      "validation_type": "presence_check",
+      "validation_method": "check_quantity_presence"
+    },
+    "result": {
+      "severity": "CRITICAL",
+      "evidence_required": ["ocr_text", "bounding_box"],
+      "description": "Net quantity statement must be declared on the principal display panel."
+    },
+    "category": "quantity"
+  },
+  {
+    "identification": {
+      "rule_id": "QTY-002",
+      "rule_reference": "Rule 6(1)(c)",
+      "version": "1.0",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "all",
+      "exemptions": ["EXM-001"]
+    },
+    "validation": {
+      "field": "net_quantity",
+      "condition": "standard_unit_symbol",
+      "validation_type": "unit_symbol_verifier",
+      "validation_method": "check_standard_units"
+    },
+    "result": {
+      "severity": "HIGH",
+      "evidence_required": ["ocr_text"],
+      "description": "Net quantity must use prescribed standard S.I. unit symbols: g, kg, ml, mL, l, L, m, cm, sq m, or N."
+    },
+    "category": "quantity"
+  },
+  {
+    "identification": {
+      "rule_id": "QTY-003",
+      "rule_reference": "Schedule II",
+      "version": "1.0",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "all",
+      "exemptions": ["EXM-001"]
+    },
+    "validation": {
+      "field": "net_quantity",
+      "condition": "symbol_size_ratio",
+      "validation_type": "numeral_height_checker",
+      "validation_method": "check_quantity_symbol_size"
+    },
+    "result": {
+      "severity": "MEDIUM",
+      "evidence_required": ["pdp_dimensions"],
+      "description": "Height of net quantity numerals must satisfy minimum height based on package weight/volume range."
+    },
+    "category": "quantity"
+  }
+]

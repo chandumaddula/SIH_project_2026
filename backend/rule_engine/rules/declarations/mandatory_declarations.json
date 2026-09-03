@@ -1,0 +1,127 @@
+[
+  {
+    "identification": {
+      "rule_id": "PC-001",
+      "rule_reference": "Rule 6(1)(a)",
+      "version": "1.0",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "all",
+      "exemptions": ["EXM-001", "EXM-002"]
+    },
+    "validation": {
+      "field": "manufacturer",
+      "condition": "presence",
+      "validation_type": "presence_check",
+      "validation_method": "check_manufacturer_presence"
+    },
+    "result": {
+      "severity": "HIGH",
+      "evidence_required": ["ocr_text", "bounding_box"],
+      "description": "Name and complete address of the manufacturer or packer must be declared on the package."
+    },
+    "category": "declarations"
+  },
+  {
+    "identification": {
+      "rule_id": "PC-002",
+      "rule_reference": "Rule 6(1)(a)",
+      "version": "1.0",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "all",
+      "exemptions": ["EXM-001", "EXM-002"]
+    },
+    "validation": {
+      "field": "address",
+      "condition": "format",
+      "validation_type": "address_parser",
+      "validation_method": "check_address_details"
+    },
+    "result": {
+      "severity": "MEDIUM",
+      "evidence_required": ["ocr_text"],
+      "description": "Address of the manufacturer/packer must contain street, city, state, and postal PIN code."
+    },
+    "category": "declarations"
+  },
+  {
+    "identification": {
+      "rule_id": "PC-003",
+      "rule_reference": "Rule 6(1)(a)",
+      "version": "1.1",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "all",
+      "exemptions": []
+    },
+    "validation": {
+      "field": "country_of_origin",
+      "condition": "presence",
+      "validation_type": "presence_check",
+      "validation_method": "check_country_of_origin"
+    },
+    "result": {
+      "severity": "HIGH",
+      "evidence_required": ["ocr_text"],
+      "description": "Imported commodities must explicitly state the Country of Origin."
+    },
+    "category": "declarations"
+  },
+  {
+    "identification": {
+      "rule_id": "PC-004",
+      "rule_reference": "Rule 6(1)(b)",
+      "version": "1.0",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "all",
+      "exemptions": ["EXM-001"]
+    },
+    "validation": {
+      "field": "generic_name",
+      "condition": "presence",
+      "validation_type": "presence_check",
+      "validation_method": "check_generic_name_presence"
+    },
+    "result": {
+      "severity": "MEDIUM",
+      "evidence_required": ["ocr_text"],
+      "description": "Generic or common name of the commodity must be declared on the principal display panel."
+    },
+    "category": "declarations"
+  },
+  {
+    "identification": {
+      "rule_id": "PC-005",
+      "rule_reference": "Rule 6(1)(f)",
+      "version": "1.0",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "all",
+      "exemptions": ["EXM-001", "EXM-002"]
+    },
+    "validation": {
+      "field": "consumer_care",
+      "condition": "presence_and_format",
+      "validation_type": "contact_parser",
+      "validation_method": "check_consumer_care_details"
+    },
+    "result": {
+      "severity": "HIGH",
+      "evidence_required": ["ocr_text"],
+      "description": "Name, address, contact telephone number, and email address of consumer care executive must be specified."
+    },
+    "category": "declarations"
+  }
+]

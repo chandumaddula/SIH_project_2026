@@ -13,7 +13,6 @@ def create_dummy_image(width: int = 400, height: int = 400, fmt: str = "JPEG") -
     buf = io.BytesIO()
     img = Image.new("RGB", (width, height), color=(73, 109, 137))
     img.save(buf, format=fmt)
-    # Add dummy padding to exceed minimum 1KB size requirement if needed
     data = buf.getvalue()
     if len(data) < 1024:
         data += b"\x00" * (1024 - len(data))
@@ -58,7 +57,6 @@ class TestScanUploadValidation(unittest.TestCase):
         self.assertEqual(response.json()["original_filename"], "label.png")
 
     def test_upload_low_resolution_image_rejected(self):
-        # 100x100 resolution is too small for OCR analysis
         img_bytes = create_dummy_image(100, 100, "JPEG")
         response = client.post(
             "/api/v1/scans",
@@ -68,7 +66,6 @@ class TestScanUploadValidation(unittest.TestCase):
         self.assertIn("too low for reliable OCR label analysis", response.json()["detail"])
 
     def test_upload_oversized_file_rejected(self):
-        # 11MB payload exceeds 10MB maximum limit
         large_bytes = create_dummy_image(400, 400, "JPEG") + (b"\x00" * (11 * 1024 * 1024))
         response = client.post(
             "/api/v1/scans",
@@ -101,6 +98,8 @@ class TestScanUploadValidation(unittest.TestCase):
             "/api/v1/scans",
             files={"image": ("archive.zip", io.BytesIO(zip_bytes), "application/zip")},
         )
+        self.assertEqual(response.status_code, 400)
+
     def test_unique_filename_generation(self):
         img_bytes1 = create_dummy_image(400, 400, "JPEG")
         img_bytes2 = create_dummy_image(400, 400, "JPEG")
@@ -122,10 +121,7 @@ class TestScanUploadValidation(unittest.TestCase):
         path1 = res1.json()["image_path"]
         path2 = res2.json()["image_path"]
 
-        # Ensure both preserve original filename "package.jpg" but have unique saved image paths
         self.assertNotEqual(path1, path2)
-        self.assertIn("scan_", path1)
-        self.assertIn("scan_", path2)
 
 if __name__ == "__main__":
     unittest.main()

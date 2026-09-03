@@ -47,11 +47,9 @@ def perform_image_quality_check(contents: bytes, filename: str) -> Dict[str, Any
         with Image.open(io.BytesIO(contents)) as img:
             width, height = img.size
 
-            # 1. Low Resolution Check
             if width < MIN_IMAGE_WIDTH or height < MIN_IMAGE_HEIGHT:
                 defects.append("LOW_RESOLUTION")
 
-            # 2. Lighting & Exposure Check
             grayscale = img.convert('L')
             pixels = list(grayscale.getdata())
             total_pixels = len(pixels) if pixels else 1
@@ -60,13 +58,11 @@ def perform_image_quality_check(contents: bytes, filename: str) -> Dict[str, Any
             if avg_brightness < 20:
                 defects.append("POOR_LIGHTING_UNDEREXPOSED")
 
-            # 3. Excessive Glare Check (Blown out reflection)
             bright_pixels = sum(1 for p in pixels if p > 252)
             glare_ratio = bright_pixels / total_pixels
             if glare_ratio > 0.65:
                 defects.append("EXCESSIVE_GLARE")
 
-            # 4. Distance / Package Too Far Check
             if width * height < 90000:
                 defects.append("PACKAGE_TOO_FAR")
 
@@ -203,59 +199,81 @@ def ai_extract_declarations(ocr_data: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 # ==============================================================================
-# PIPELINE STEP 5: Legal Metrology Rule Engine & Compliance Result
+# PIPELINE STEP 5: Legal Metrology Rule Engine & Compliance Result (Phase 7 Engine)
 # ==============================================================================
+from rule_engine import LegalMetrologyComplianceEngine, ProductContext
+
 def run_legal_metrology_rule_engine(declarations: Dict[str, Any]) -> Dict[str, Any]:
+    engine = LegalMetrologyComplianceEngine()
+    context = ProductContext(
+        product_name=declarations.get("productName"),
+        category=declarations.get("category", "GENERAL"),
+        pdp_area_sq_cm=float(declarations.get("pdp_area_sq_cm", 100.0)),
+        is_imported=bool(declarations.get("importer") or declarations.get("is_imported"))
+    )
+    report = engine.evaluate_package_compliance(declarations, context=context)
+
+    status_val = report.overall_status.value if hasattr(report.overall_status, "value") else str(report.overall_status)
+
+    if status_val == "PASS":
+        result_status = "no_issue"
+        compliance_overall = "COMPLIANT"
+    elif status_val in ("REVIEW", "REVIEW_REQUIRED"):
+        result_status = "review_recommended"
+        compliance_overall = "NEEDS_REVIEW"
+    else:
+        result_status = "potential_violation"
+        compliance_overall = "NON_COMPLIANT"
+
     violations = []
-    
-    if not declarations.get("mrp"):
-        violations.append({
-            "rule_id": "PCR-2011-RULE-6-1-E",
-            "severity": "HIGH",
-            "description": "MRP declaration missing from outer package label.",
-            "legal_reference": "Legal Metrology (Packaged Commodities) Rules, 2011 - Rule 6(1)(e)"
-        })
-
-    if not declarations.get("netQuantity"):
-        violations.append({
-            "rule_id": "PCR-2011-RULE-6-1-C",
-            "severity": "HIGH",
-            "description": "Net Quantity declaration missing or non-compliant unit specified.",
-            "legal_reference": "Legal Metrology (Packaged Commodities) Rules, 2011 - Rule 6(1)(c)"
-        })
-
-    if not declarations.get("manufacturer") and not declarations.get("packer"):
-        violations.append({
-            "rule_id": "PCR-2011-RULE-6-1-A",
-            "severity": "MEDIUM",
-            "description": "Complete name and address of Manufacturer or Packer missing.",
-            "legal_reference": "Legal Metrology (Packaged Commodities) Rules, 2011 - Rule 6(1)(a)"
-        })
-
-    if not declarations.get("consumerCare"):
-        violations.append({
-            "rule_id": "PCR-2011-RULE-6-1-F",
-            "severity": "MEDIUM",
-            "description": "Consumer care helpline telephone number or email missing.",
-            "legal_reference": "Legal Metrology (Packaged Commodities) Rules, 2011 - Rule 6(1)(f)"
-        })
-
-    result_status = "no_issue" if not violations else "review_recommended"
-    compliance_overall = "COMPLIANT" if not violations else "NON_COMPLIANT"
+    for f in report.findings:
+        if f.status in ("POTENTIAL_VIOLATION", "REVIEW", "REVIEW_REQUIRED"):
+            violations.append({
+                "rule_id": f.rule_id,
+                "severity": f.severity.value if hasattr(f.severity, "value") else str(f.severity),
+                "description": f.message,
+                "legal_reference": f.legal_clause
+            })
 
     return {
         "result": result_status,
         "compliance_status": compliance_overall,
         "explanation": (
-            "All mandatory Legal Metrology declarations (MRP, Net Qty, Manufacturer, Consumer Care) are verified compliant."
-            if not violations
-            else f"Rule engine detected {len(violations)} non-compliant declaration(s)."
+            "All mandatory Legal Metrology declarations verified compliant by Phase 7 engine."
+            if status_val == "PASS"
+            else f"Phase 7 Rule engine detected {report.summary.potential_violations} violation(s) and {report.summary.review_required} review item(s)."
         ),
-        "confidence": 0.95,
+        "confidence": round(report.compliance_score / 100.0, 2),
         "flags": [v["description"] for v in violations],
         "violations": violations,
-        "suggestedNextStep": "Verified compliant. Proceed to save inspection record." if not violations else "Flagged for manual officer review."
+        "report": report.model_dump(),
+        "suggestedNextStep": "Verified compliant. Proceed to save inspection record." if status_val == "PASS" else "Flagged for legal officer review."
     }
+
+def create_scan_record(
+    db: Session,
+    original_filename: str,
+    image_path: str,
+    file_type: str,
+    file_size: int,
+    user_id: Optional[str] = None,
+    status: str = "PENDING"
+) -> Scan:
+    effective_user_id = user_id or "citizen-anon"
+    ensure_user_exists(db, effective_user_id, f"{effective_user_id}@citizen.com", "Citizen User", "CITIZEN")
+
+    scan = Scan(
+        user_id=effective_user_id,
+        image_path=image_path,
+        original_filename=original_filename,
+        file_type=file_type,
+        file_size=file_size,
+        status=status,
+    )
+    db.add(scan)
+    db.commit()
+    db.refresh(scan)
+    return scan
 
 def upload_package_image(
     db: Session,
@@ -268,17 +286,15 @@ def upload_package_image(
 
     proc_meta = process_image_pipeline(contents, filename, effective_user_id)
 
-    scan_record = Scan(
-        user_id=effective_user_id,
-        image_path=proc_meta["image_path"],
+    scan_record = create_scan_record(
+        db=db,
         original_filename=filename,
+        image_path=proc_meta["image_path"],
         file_type=f"image/{proc_meta['file_ext'].replace('.', '')}",
         file_size=proc_meta["file_size"],
+        user_id=effective_user_id,
         status=ScanStatusEnum.COMPLETED.value,
     )
-    db.add(scan_record)
-    db.commit()
-    db.refresh(scan_record)
 
     formatted_scan_id = f"SCAN-{scan_record.id:05d}"
 
@@ -313,17 +329,15 @@ def execute_scan_pipeline(
     declarations = ai_extract_declarations(ocr_data)
     rule_results = run_legal_metrology_rule_engine(declarations)
 
-    scan_record = Scan(
-        user_id=effective_user_id,
-        image_path=proc_meta["image_path"],
+    scan_record = create_scan_record(
+        db=db,
         original_filename=filename,
+        image_path=proc_meta["image_path"],
         file_type=f"image/{proc_meta['file_ext'].replace('.', '')}",
         file_size=proc_meta["file_size"],
+        user_id=effective_user_id,
         status=ScanStatusEnum.COMPLETED.value,
     )
-    db.add(scan_record)
-    db.commit()
-    db.refresh(scan_record)
 
     formatted_scan_id = f"SCAN-{scan_record.id:05d}"
 
