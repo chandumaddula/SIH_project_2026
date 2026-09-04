@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardBody, CardTitle } from '../../components/Card';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
-import { EmptyState } from '../../components/EmptyState';
 
 interface IndividualCheck {
   field: string;
@@ -42,7 +41,6 @@ export const Compliance: React.FC = () => {
   const [officerDecision, setOfficerDecision] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch compliance evaluation report
     setTimeout(() => {
       setReport({
         scan_id: 'SCAN-2026-0891',
@@ -152,6 +150,14 @@ export const Compliance: React.FC = () => {
     alert(`Officer Decision Recorded: ${decision} for ${report?.scan_id}`);
   };
 
+  const handleDownloadPDF = () => {
+    window.open('/api/v1/reports/inspection/1/pdf', '_blank');
+  };
+
+  const handleGenerateNotice = () => {
+    window.open('/api/v1/reports/inspection/1/notice', '_blank');
+  };
+
   const filteredChecks = report?.checks.filter(c => {
     if (activeTab === 'all') return true;
     return c.status === activeTab;
@@ -159,13 +165,25 @@ export const Compliance: React.FC = () => {
 
   return (
     <div className="page" style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-      <div className="page-header" style={{ marginBottom: '24px' }}>
-        <h1 className="page-title" style={{ fontSize: '28px', fontWeight: 700, color: '#1e293b' }}>
-          Legal Metrology Compliance Dashboard
-        </h1>
-        <p className="page-subtitle" style={{ color: '#64748b' }}>
-          Explainable Rule Engine audit trails, visual evidence verification & officer review portal
-        </p>
+      <div className="page-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 className="page-title" style={{ fontSize: '28px', fontWeight: 700, color: '#1e293b' }}>
+            Legal Metrology Compliance Dashboard
+          </h1>
+          <p className="page-subtitle" style={{ color: '#64748b' }}>
+            Explainable Rule Engine audit trails, visual evidence verification & officer review portal
+          </p>
+        </div>
+
+        {/* Phase 8 Download & Notice Action Buttons */}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
+            📄 Download Inspection PDF
+          </Button>
+          <Button variant="primary" size="sm" onClick={handleGenerateNotice}>
+            ⚖️ Issue Legal Notice (Sec 15/49)
+          </Button>
+        </div>
       </div>
 
       {loading || !report ? (
@@ -320,7 +338,7 @@ export const Compliance: React.FC = () => {
                   )}
 
                   <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '16px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', display: 'block', marginBottom: '8px' }}>OFFICER REVIEW DECISION</label>
+                    <label style={{ fontSize: '12px', fontWeight 700, color: '#64748b', display: 'block', marginBottom: '8px' }}>OFFICER REVIEW DECISION</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <Button variant="primary" size="sm" onClick={() => handleOfficerReview('APPROVED')}>
                         ✓ Approve Compliance

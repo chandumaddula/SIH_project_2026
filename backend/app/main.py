@@ -13,6 +13,7 @@ from app.core.logging_config import setup_logging
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.scans import router as scans_v1_router
+from app.api.v1.ai import router as ai_router
 from app.api import (
     users,
     products,
@@ -34,10 +35,11 @@ try:
 except Exception as db_err:
     logger.warning("Database table creation skipped on import (DB offline or unreachable): %s", db_err)
 
-# Ensure storage directories exist
+# Ensure storage & uploads directories exist
 os.makedirs("storage/scans", exist_ok=True)
 os.makedirs("storage/processed", exist_ok=True)
 os.makedirs("storage/ocr", exist_ok=True)
+os.makedirs("backend/uploads", exist_ok=True)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -47,8 +49,9 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Mount Static Storage
+# Mount Static Storage & Uploads
 app.mount("/static", StaticFiles(directory="storage"), name="static")
+app.mount("/uploads", StaticFiles(directory="backend/uploads"), name="uploads")
 
 # CORS Configuration
 app.add_middleware(
@@ -62,6 +65,7 @@ app.add_middleware(
 # Include Routers
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(scans_v1_router, prefix="/api/v1")
+app.include_router(ai_router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(products.router, prefix="/api/v1")
 app.include_router(compliance.router, prefix="/api/v1")
