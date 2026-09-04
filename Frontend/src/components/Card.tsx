@@ -3,6 +3,7 @@ import React from 'react';
 export interface CardProps {
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
   onClick?: () => void;
   hoverable?: boolean;
   accentColor?: 'primary' | 'success' | 'error' | 'warning' | 'accent' | 'none';
@@ -12,6 +13,7 @@ export interface CardProps {
 export const Card: React.FC<CardProps> = ({
   children,
   className = '',
+  style,
   onClick,
   hoverable = false,
   accentColor = 'none',
@@ -34,6 +36,7 @@ export const Card: React.FC<CardProps> = ({
   return (
     <div
       className={classes}
+      style={style}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -76,8 +79,8 @@ export const Card: React.FC<CardProps> = ({
   );
 };
 
-export const CardHeader: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
-  <div className={`card-header ${className}`}>
+export const CardHeader: React.FC<{ children: React.ReactNode; className?: string; style?: React.CSSProperties }> = ({ children, className = '', style }) => (
+  <div className={`card-header ${className}`} style={style}>
     {children}
     <style>{`
       .card-header {
@@ -89,8 +92,8 @@ export const CardHeader: React.FC<{ children: React.ReactNode; className?: strin
   </div>
 );
 
-export const CardTitle: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
-  <h3 className={`card-title ${className}`}>
+export const CardTitle: React.FC<{ children: React.ReactNode; className?: string; style?: React.CSSProperties }> = ({ children, className = '', style }) => (
+  <h3 className={`card-title ${className}`} style={style}>
     {children}
     <style>{`
       .card-title {
@@ -103,8 +106,8 @@ export const CardTitle: React.FC<{ children: React.ReactNode; className?: string
   </h3>
 );
 
-export const CardBody: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
-  <div className={`card-body ${className}`}>
+export const CardBody: React.FC<{ children: React.ReactNode; className?: string; style?: React.CSSProperties }> = ({ children, className = '', style }) => (
+  <div className={`card-body ${className}`} style={style}>
     {children}
     <style>{`
       .card-body {
@@ -114,8 +117,8 @@ export const CardBody: React.FC<{ children: React.ReactNode; className?: string 
   </div>
 );
 
-export const CardFooter: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
-  <div className={`card-footer ${className}`}>
+export const CardFooter: React.FC<{ children: React.ReactNode; className?: string; style?: React.CSSProperties }> = ({ children, className = '', style }) => (
+  <div className={`card-footer ${className}`} style={style}>
     {children}
     <style>{`
       .card-footer {

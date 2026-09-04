@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy.orm import Session
+from ai.inference import AIInferencePipeline
 
 # Ensure project root is in sys.path
 root_dir = str(Path(__file__).resolve().parents[3])

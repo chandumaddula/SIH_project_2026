@@ -9,7 +9,7 @@ interface IndividualCheck {
   status: 'PASS' | 'REVIEW_REQUIRED' | 'POTENTIAL_VIOLATION' | 'EXEMPTED';
   confidence: number;
   message: string;
-  legal_clause: str;
+  legal_clause: string;
   extracted_value?: string;
   evidence?: {
     image_path: string;
@@ -338,7 +338,7 @@ export const Compliance: React.FC = () => {
                   )}
 
                   <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '16px' }}>
-                    <label style={{ fontSize: '12px', fontWeight 700, color: '#64748b', display: 'block', marginBottom: '8px' }}>OFFICER REVIEW DECISION</label>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', display: 'block', marginBottom: '8px' }}>OFFICER REVIEW DECISION</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <Button variant="primary" size="sm" onClick={() => handleOfficerReview('APPROVED')}>
                         ✓ Approve Compliance
