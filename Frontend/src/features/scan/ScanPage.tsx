@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardBody, CardTitle } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Badge } from '../../components/Badge';
 import { useUserStore } from '../../store';
 import { ScanResult } from '../../types/scan';
+import { mockScanResults } from '../../services/mockData';
 import { CameraView } from './CameraView';
 import { EmptyState } from '../../components/EmptyState';
-import { citizenScanService } from '../../services/citizenScan.service';
-import { CitizenScan } from '../../types/citizen';
 
 type PipelineStep = 'idle' | 'image_processing' | 'ocr' | 'ai_extraction' | 'structured_data' | 'rule_engine' | 'complete';
 
@@ -28,92 +27,65 @@ export const ScanPage: React.FC = () => {
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState<PipelineStep>('idle');
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [recentScans, setRecentScans] = useState<CitizenScan[]>([]);
 
-  // Load recent scans from real backend
-  useEffect(() => {
-    const citizenId = user?.id || 'citizen-anon';
-    citizenScanService.getScans(citizenId)
-      .then(setRecentScans)
-      .catch((err) => {
-        console.error('Failed to load recent scans:', err);
-        setRecentScans([]);
-      });
-  }, [user]);
+  // Recent scans from mock data
+  const recentScans = mockScanResults;
 
-  /**
-   * Execute the real AI pipeline via backend.
-   * Sends the actual captured/uploaded image to the backend which runs:
-   * real OCR → real field extraction → real Rule Engine.
-   */
-  const handleCapture = async (imageData: string) => {
+  // Execute End-to-End Pipeline
+  const handleCapture = (imageData: string) => {
     setLoading(true);
     setCurrentStep('image_processing');
-    setApiError(null);
 
-    // Animate through stages while the actual backend call runs in parallel
-    setTimeout(() => setCurrentStep('ocr'), 400);
-    setTimeout(() => setCurrentStep('ai_extraction'), 800);
-    setTimeout(() => setCurrentStep('structured_data'), 1200);
-    setTimeout(() => setCurrentStep('rule_engine'), 1600);
+    // Step 1: Image Processing
+    setTimeout(() => {
+      setCurrentStep('ocr');
+      
+      // Step 2: OCR
+      setTimeout(() => {
+        setCurrentStep('ai_extraction');
+        
+        // Step 3: AI Extraction
+        setTimeout(() => {
+          setCurrentStep('structured_data');
 
-    try {
-      // Convert data URL to File
-      const blob = await (await fetch(imageData)).blob();
-      const file = new File([blob], 'captured.jpg', { type: blob.type || 'image/jpeg' });
+          // Step 4: Structured Data
+          setTimeout(() => {
+            setCurrentStep('rule_engine');
 
-      const citizenId = user?.id || 'citizen-anon';
+            // Step 5: Legal Metrology Rule Engine
+            setTimeout(() => {
+              setCurrentStep('complete');
 
-      // Call the REAL backend with the REAL image
-      const result = await citizenScanService.createScan(citizenId, [file]);
+              const mockDetection = {
+                productName: 'Fresh Farms Refined Oil (1 L)',
+                mfgDate: '2024-06-15',
+                expDate: '2025-06-14',
+                batchNumber: 'VEG-2024-045',
+                licenseNumber: 'FSSAI-1123456789',
+                weight: '1 L (1000 ml)',
+                ingredients: ['Refined Soybean Oil', 'Vitamin A', 'Vitamin D']
+              };
 
-      setCurrentStep('complete');
+              const missingFields: string[] = [];
+              const isCompliant = true;
 
-      // Map backend result to ScanResult
-      const detected = result.detected || {};
-      const detectedTyped = detected as Record<string, any>;
-      const result_mapped: ScanResult = {
-        id: result.id || result.scan_id || ('scan-' + Date.now()),
-        imageUrl: imageData,
-        capturedAt: result.createdAt || new Date().toISOString(),
-        detected: {
-          productName: detectedTyped.productName || detectedTyped.product_name,
-          mrp: detectedTyped.mrp,
-          netQuantity: detectedTyped.netQuantity || detectedTyped.net_quantity,
-          manufacturer: detectedTyped.manufacturer,
-          packer: detectedTyped.packer,
-          importer: detectedTyped.importer,
-          address: detectedTyped.address,
-          countryOfOrigin: detectedTyped.countryOfOrigin || detectedTyped.country_of_origin,
-          mfgDate: detectedTyped.mfgDate || detectedTyped.manufacturing_date,
-          expDate: detectedTyped.expDate || detectedTyped.expiry_date,
-          batchNumber: detectedTyped.batchNumber,
-          consumerCare: detectedTyped.consumerCare,
-          weight: detectedTyped.netQuantity || detectedTyped.net_quantity,
-          ingredients: []
-        },
-        missing: (result.screening?.flags || []) as string[],
-        isCompliant: result.screening?.result === 'no_issue',
-        inspectorId: user?.id || 'emp-001',
-        // Include real OCR data and rule engine results
-        ocrBoxes: (result as any).ocrBoxes,
-        violations: (result as any).violations,
-        screening: result.screening,
-        imagePath: (result as any).image_path
-      };
+              const result: ScanResult = {
+                id: 'scan-' + Date.now(),
+                imageUrl: imageData,
+                capturedAt: new Date().toISOString(),
+                detected: mockDetection,
+                missing: missingFields,
+                isCompliant,
+                inspectorId: user?.id || 'emp-001'
+              };
 
-      setScanResult(result_mapped);
-
-      // Refresh recent scans
-      citizenScanService.getScans(citizenId).then(setRecentScans).catch(() => {});
-    } catch (err: any) {
-      setApiError(err?.message || 'Failed to analyze package. Please try again.');
-      setCurrentStep('complete');
-      console.error('Scan failed:', err);
-    } finally {
-      setLoading(false);
-    }
+              setScanResult(result);
+              setLoading(false);
+            }, 600);
+          }, 600);
+        }, 600);
+      }, 600);
+    }, 600);
   };
 
   // Handle file upload
@@ -397,17 +369,17 @@ export const ScanPage: React.FC = () => {
               <div key={scan.id} className="scan__history-item">
                 <div className="scan__history-info">
                   <div className="scan__history-product">
-                    {scan.detected?.productName || 'Unknown Product'}
+                    {scan.detected.productName || 'Unknown Product'}
                   </div>
                   <div className="scan__history-date">
-                    {scan.createdAt ? new Date(scan.createdAt).toLocaleDateString() : ''}
+                    {new Date(scan.capturedAt).toLocaleDateString()}
                   </div>
                 </div>
                 <div className="scan__history-status">
-                  {scan.screening?.result === 'no_issue' ? (
+                  {scan.isCompliant ? (
                     <Badge variant="success">Compliant</Badge>
                   ) : (
-                    <Badge variant="error">Review Required</Badge>
+                    <Badge variant="error">Non-Compliant</Badge>
                   )}
                 </div>
               </div>

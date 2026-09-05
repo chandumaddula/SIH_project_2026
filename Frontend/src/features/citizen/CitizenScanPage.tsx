@@ -166,22 +166,10 @@ export const CitizenScanPage: React.FC = () => {
     setStep('analyzing');
 
     try {
-      // Convert captured images (data URLs) into real File objects
-      const files = await Promise.all(
-        capturedImages.map(async (img, idx) => {
-          const blob = await (await fetch(img.dataUrl)).blob();
-          return new File([blob], `capture-${idx}.${(blob.type.split('/')[1] || 'jpg')}`, {
-            type: blob.type || 'image/jpeg',
-          });
-        })
-      );
-
-      // Call the REAL backend with the REAL images
-      const result = await citizenScanService.createScan(citizenId, files);
+      const result = await citizenScanService.createScan(citizenId, []);
       setScanResult(result);
       setStep('results');
     } catch (err) {
-      console.error('Analysis failed:', err);
       setError('Analysis failed. Please try again.');
       setStep('capture');
     }

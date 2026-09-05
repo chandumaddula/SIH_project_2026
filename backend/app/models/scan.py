@@ -32,10 +32,6 @@ class Scan(Base):
     file_type = Column(String(50), nullable=False)
     file_size = Column(Integer, nullable=False)
     status = Column(String(50), nullable=False, default=ScanStatusEnum.PENDING.value)
-    # Store actual AI-extracted data (only from real image OCR)
-    detected_data = Column(JSON, nullable=True, default=dict)
-    screening_data = Column(JSON, nullable=True, default=dict)
-    ocr_data = Column(JSON, nullable=True, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

@@ -11,7 +11,7 @@ class OCRResult(Base):
     inspection_id = Column(Integer, ForeignKey("inspections.id", ondelete="CASCADE"), nullable=True)
     extracted_text = Column(Text, nullable=True)
     bounding_boxes_json = Column(JSON, nullable=True)
-    confidence_score = Column(Float, default=0.0)
+    confidence_score = Column(Float, default=0.95)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships

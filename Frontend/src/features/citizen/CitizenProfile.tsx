@@ -151,10 +151,9 @@ export const CitizenProfile: React.FC = () => {
                       {new Date(scan.createdAt).toLocaleDateString()}
                     </span>
                   </div>
-                  <span className={`cit-profile__scan-result cit-profile__scan-result--${(scan.screening.result || 'not-available').replace('_', '-')}`}>
+                  <span className={`cit-profile__scan-result cit-profile__scan-result--${scan.screening.result.replace('_', '-')}`}>
                     {scan.screening.result === 'no_issue' ? 'No Issue' :
-                     scan.screening.result === 'review_recommended' ? 'Review' :
-                     scan.screening.result === 'potential_issue' ? 'Flagged' : 'N/A'}
+                     scan.screening.result === 'review_recommended' ? 'Review' : 'Flagged'}
                   </span>
                 </li>
               ))}

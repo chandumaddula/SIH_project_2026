@@ -18,12 +18,6 @@ const RESULT_DISPLAY: Record<PreliminaryResult, { label: string; icon: string; b
   no_issue: { label: 'No Potential Issue', icon: '🟢', badgeClass: 'cit-scans__badge--success' },
   review_recommended: { label: 'Review Recommended', icon: '🟡', badgeClass: 'cit-scans__badge--warning' },
   potential_issue: { label: 'Potential Issue', icon: '🔴', badgeClass: 'cit-scans__badge--danger' },
-  not_available: { label: 'Not Available', icon: '⚪', badgeClass: 'cit-scans__badge--muted' },
-};
-
-const getScreeningDisplay = (result: PreliminaryResult | null) => {
-  if (!result) return RESULT_DISPLAY.not_available;
-  return RESULT_DISPLAY[result] || RESULT_DISPLAY.not_available;
 };
 
 export const CitizenScansList: React.FC = () => {
@@ -138,7 +132,7 @@ export const CitizenScansList: React.FC = () => {
         {!loading && !error && filteredScans.length > 0 && (
           <div className="cit-scans__list">
             {filteredScans.map(scan => {
-              const display = getScreeningDisplay(scan.screening.result);
+              const display = RESULT_DISPLAY[scan.screening.result];
               return (
                 <article
                   key={scan.id}
@@ -174,7 +168,7 @@ export const CitizenScansList: React.FC = () => {
                       <strong>Images:</strong> {scan.images.length}
                     </span>
                     <span className="cit-scans__meta-item">
-                      <strong>Confidence:</strong> {scan.screening.confidence != null ? `${Math.round(scan.screening.confidence * 100)}%` : 'N/A'}
+                      <strong>Confidence:</strong> {Math.round(scan.screening.confidence * 100)}%
                     </span>
                     <span className="cit-scans__meta-item">
                       <strong>ID:</strong> {scan.id}

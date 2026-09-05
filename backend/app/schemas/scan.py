@@ -89,38 +89,11 @@ class DetectedInfoSchema(BaseModel):
     barcode: Optional[str] = None
 
 class ScreeningResultSchema(BaseModel):
-    # All fields optional so legacy/incomplete DB rows can still be returned.
-    # The API layer fills missing fields with honest "not available" values
-    # (no invented product data, no fake confidence).
-    result: Optional[PreliminaryResultType] = None
-    explanation: Optional[str] = None
-    confidence: Optional[float] = None
-    flags: List[str] = []
-    suggestedNextStep: Optional[str] = None
-
-class OCRBoxSchema(BaseModel):
-    """OCR bounding box from AI pipeline."""
-    text: str
-    box: Dict[str, int]  # {x, y, w, h}
+    result: PreliminaryResultType
+    explanation: str
     confidence: float
-    ocr_engine: Optional[str] = "easyocr"
-
-
-class ViolationSchema(BaseModel):
-    """Rule violation from legal metrology engine."""
-    rule_id: str
-    severity: str
-    description: str
-    legal_reference: Optional[str] = None
-
-
-class LabelRegionSchema(BaseModel):
-    """Detected label region."""
-    x: int
-    y: int
-    width: int
-    height: int
-
+    flags: List[str] = []
+    suggestedNextStep: str
 
 class CitizenScanResponse(BaseModel):
     id: Any
@@ -136,7 +109,4 @@ class CitizenScanResponse(BaseModel):
     quality: Optional[ImageQualityCheckResponse] = None
     detected: Optional[DetectedInfoSchema] = None
     screening: Optional[ScreeningResultSchema] = None
-    ocrBoxes: List[Dict[str, Any]] = []  # Real OCR bounding boxes from AI pipeline
-    violations: List[Dict[str, Any]] = []  # Real rule violations
-    labelRegion: Optional[Dict[str, int]] = None  # Detected label region
     createdAt: Optional[str] = None

@@ -5,34 +5,15 @@
 export type PreliminaryResult = 'no_issue' | 'review_recommended' | 'potential_issue';
 export type ScanStatus = 'analyzing' | 'complete';
 
-export interface ImageQuality {
-  quality_status?: 'GOOD' | 'POOR';
-  usable?: boolean;
-  quality_score?: number;
-  defects?: string[];
-  feedback?: string;
-}
-
-export interface OCRBox {
-  text: string;
-  box: { x: number; y: number; w: number; h: number };
-  confidence: number;
-  ocr_engine?: string;
-}
-
-export interface RuleViolation {
-  rule_id: string;
-  severity: 'HIGH' | 'MEDIUM' | 'LOW';
-  description: string;
-  legal_reference?: string;
-}
-
-export interface PreliminaryScreening {
-  result: PreliminaryResult | null;
-  explanation: string;
-  confidence: number;
-  flags: string[];
-  suggestedNextStep: string;
+export interface PackageImage {
+  id: string;
+  type: 'front' | 'back' | 'side' | 'label' | 'other';
+  dataUrl: string;
+  uploadedAt: string;
+  quality: {
+    blur: 'low' | 'medium' | 'high';
+    lighting: 'poor' | 'fair' | 'good';
+  };
 }
 
 export interface DetectedInformation {
@@ -55,28 +36,24 @@ export interface DetectedInformation {
   otherDetected?: string;
   licenseNumber?: string;
   barcode?: string;
-  mfgDate?: string;
-  expDate?: string;
-  batchNumber?: string;
 }
 
-/**
- * Real scan result from the AI pipeline backend.
- * Includes: OCR boxes, extracted fields, rule violations.
- */
+export interface PreliminaryScreening {
+  result: PreliminaryResult;
+  explanation: string;
+  confidence: number;
+  flags: string[];
+  suggestedNextStep: string;
+  detectedAt: string;
+}
+
 export interface CitizenScan {
   id: string;
-  scan_id?: string;
-  citizenId?: string;
-  images: string[];  // Image URLs/paths from backend
+  citizenId: string;
+  images: PackageImage[];
   detected: DetectedInformation;
   screening: PreliminaryScreening;
   createdAt: string;
-  // Real AI pipeline fields
-  quality?: ImageQuality;
-  ocrBoxes?: OCRBox[];
-  violations?: RuleViolation[];
-  labelRegion?: { x: number; y: number; width: number; height: number };
 }
 
 export interface CitizenComplaint {
