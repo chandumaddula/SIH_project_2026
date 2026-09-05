@@ -28,13 +28,10 @@ const initialIsAuthenticated = !!(initialUser && initialToken && initialPersonTy
 
 export const UserStoreProvider = (props: UserStoreProviderProps) => {
   const { children } = props;
- 
-
   const [user, setUser] = useState<AuthUser | null>(initialUser);
   const [isAuthenticated, setIsAuthenticated] = useState(initialIsAuthenticated);
   const [personType, setPersonType] = useState<UserRole | null>(initialPersonType);
   const [token, setToken] = useState<string | null>(initialToken);
-
 
   const login = useCallback(async (identifier: string, password: string, personType: UserRole) => {
     const authState = await api.auth.login({ identifier, password }, personType);

@@ -15,7 +15,6 @@ def test_summary_report():
     assert "compliance_rate_percentage" in data
 
 def test_inspection_report():
-    # Create inspection
     insp_res = client.post("/api/v1/inspections", json={"product_id": "REPORT-TEST-PROD"})
     inspection_id = insp_res.json()["id"]
 
@@ -24,6 +23,21 @@ def test_inspection_report():
     data = response.json()
     assert data["inspection_id"] == inspection_id
     assert data["product_id"] == "REPORT-TEST-PROD"
+
+def test_inspection_pdf_and_notice_generation():
+    insp_res = client.post("/api/v1/inspections", json={"product_id": "PDF-NOTICE-PROD"})
+    inspection_id = insp_res.json()["id"]
+
+    # Test PDF Report HTML stream
+    pdf_res = client.get(f"/api/v1/reports/inspection/{inspection_id}/pdf")
+    assert pdf_res.status_code == 200
+    assert "Official Inspection Certificate" in pdf_res.text
+
+    # Test Statutory Legal Notice HTML stream
+    notice_res = client.get(f"/api/v1/reports/inspection/{inspection_id}/notice")
+    assert notice_res.status_code == 200
+    assert "NOTICE OF STATUTORY NON-COMPLIANCE" in notice_res.text
+    assert "Legal Metrology Act, 2009" in notice_res.text
 
 def test_nonexistent_inspection_report():
     response = client.get("/api/v1/reports/inspection/999999")

@@ -70,11 +70,9 @@ def perform_image_quality_check(contents: bytes, filename: str) -> Dict[str, Any
         with Image.open(io.BytesIO(contents)) as img:
             width, height = img.size
 
-            # 1. Low Resolution Check
             if width < MIN_IMAGE_WIDTH or height < MIN_IMAGE_HEIGHT:
                 defects.append("LOW_RESOLUTION")
 
-            # 2. Lighting & Exposure Check
             grayscale = img.convert('L')
             pixels = list(grayscale.getdata())
             total_pixels = len(pixels) if pixels else 1
@@ -83,13 +81,11 @@ def perform_image_quality_check(contents: bytes, filename: str) -> Dict[str, Any
             if avg_brightness < 20:
                 defects.append("POOR_LIGHTING_UNDEREXPOSED")
 
-            # 3. Excessive Glare Check (Blown out reflection)
             bright_pixels = sum(1 for p in pixels if p > 252)
             glare_ratio = bright_pixels / total_pixels
             if glare_ratio > 0.65:
                 defects.append("EXCESSIVE_GLARE")
 
-            # 4. Distance / Package Too Far Check
             if width * height < 90000:
                 defects.append("PACKAGE_TOO_FAR")
 
@@ -371,99 +367,126 @@ def _fallback_ai_results() -> Dict[str, Any]:
 
 
 # ==============================================================================
-# PIPELINE STEP 5: Legal Metrology Rule Engine & Compliance Result
+# PIPELINE STEP 5: Legal Metrology Rule Engine & Compliance Result (Phase 7 Engine)
 # ==============================================================================
-def run_legal_metrology_rule_engine(declarations: Dict[str, Any], fields: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """
-    Evaluate declarations using the existing rule engine.
-    Confidence is calculated from ACTUAL field detection, not hardcoded.
-    """
+from rule_engine import LegalMetrologyComplianceEngine, ProductContext
+
+
+def run_legal_metrology_rule_engine(
+    declarations: Dict[str, Any]
+) -> Dict[str, Any]:
+    engine = LegalMetrologyComplianceEngine()
+
+    context = ProductContext(
+        product_name=declarations.get("productName"),
+        category=declarations.get("category", "GENERAL"),
+        pdp_area_sq_cm=float(
+            declarations.get("pdp_area_sq_cm", 100.0)
+        ),
+        is_imported=bool(
+            declarations.get("importer")
+            or declarations.get("is_imported")
+        )
+    )
+
+    report = engine.evaluate_package_compliance(
+        declarations,
+        context=context
+    )
+
+    status_val = (
+        report.overall_status.value
+        if hasattr(report.overall_status, "value")
+        else str(report.overall_status)
+    )
+
+    if status_val == "PASS":
+        result_status = "no_issue"
+        compliance_overall = "COMPLIANT"
+    elif status_val in ("REVIEW", "REVIEW_REQUIRED"):
+        result_status = "review_recommended"
+        compliance_overall = "NEEDS_REVIEW"
+    else:
+        result_status = "potential_violation"
+        compliance_overall = "NON_COMPLIANT"
+
     violations = []
 
-    if not declarations.get("mrp"):
-        violations.append({
-            "rule_id": "PCR-2011-RULE-6-1-E",
-            "severity": "HIGH",
-            "description": "MRP declaration missing from outer package label.",
-            "legal_reference": "Legal Metrology (Packaged Commodities) Rules, 2011 - Rule 6(1)(e)"
-        })
-
-    if not declarations.get("netQuantity"):
-        violations.append({
-            "rule_id": "PCR-2011-RULE-6-1-C",
-            "severity": "HIGH",
-            "description": "Net Quantity declaration missing or non-compliant unit specified.",
-            "legal_reference": "Legal Metrology (Packaged Commodities) Rules, 2011 - Rule 6(1)(c)"
-        })
-
-    if not declarations.get("manufacturer") and not declarations.get("packer"):
-        violations.append({
-            "rule_id": "PCR-2011-RULE-6-1-A",
-            "severity": "MEDIUM",
-            "description": "Complete name and address of Manufacturer or Packer missing.",
-            "legal_reference": "Legal Metrology (Packaged Commodities) Rules, 2011 - Rule 6(1)(a)"
-        })
-
-    if not declarations.get("consumerCare"):
-        violations.append({
-            "rule_id": "PCR-2011-RULE-6-1-F",
-            "severity": "MEDIUM",
-            "description": "Consumer care helpline telephone number or email missing.",
-            "legal_reference": "Legal Metrology (Packaged Commodities) Rules, 2011 - Rule 6(1)(f)"
-        })
-
-    # Calculate confidence from ACTUAL field detection evidence
-    # NOT hardcoded - derived from fields parameter
-    field_confidences = []
-    if fields:
-        for field_name, field_data in fields.items():
-            if isinstance(field_data, dict) and field_data.get("confidence", 0) > 0:
-                field_confidences.append(field_data["confidence"])
-
-    if field_confidences:
-        # Average confidence of detected fields
-        overall_confidence = sum(field_confidences) / len(field_confidences)
-        # Penalize if many fields are missing
-        missing_ratio = len(violations) / 4.0  # 4 mandatory checks
-        overall_confidence = overall_confidence * (1.0 - 0.2 * missing_ratio)
-    else:
-        # No fields detected at all - confidence is 0
-        overall_confidence = 0.0
-
-    overall_confidence = round(max(0.0, min(1.0, overall_confidence)), 4)
-
-    # Map result to compliance status
-    # - no_issue: all fields detected, no violations -> PASS
-    # - review_recommended: some missing -> REVIEW REQUIRED
-    # - potential_issue: many missing -> POTENTIAL COMPLIANCE ISSUE
-    if not violations:
-        result_status = "no_issue"
-        compliance_overall = "PASS"
-    elif len(violations) <= 2:
-        result_status = "review_recommended"
-        compliance_overall = "REVIEW REQUIRED"
-    else:
-        result_status = "potential_issue"
-        compliance_overall = "POTENTIAL COMPLIANCE ISSUE"
+    for f in report.findings:
+        if f.status in (
+            "POTENTIAL_VIOLATION",
+            "REVIEW",
+            "REVIEW_REQUIRED"
+        ):
+            violations.append({
+                "rule_id": f.rule_id,
+                "severity": (
+                    f.severity.value
+                    if hasattr(f.severity, "value")
+                    else str(f.severity)
+                ),
+                "description": f.message,
+                "legal_reference": f.legal_clause
+            })
 
     return {
         "result": result_status,
         "compliance_status": compliance_overall,
         "explanation": (
-            "All mandatory Legal Metrology declarations (MRP, Net Qty, Manufacturer, Consumer Care) were detected from the uploaded image."
-            if not violations
-            else f"Rule engine detected {len(violations)} missing or non-compliant declaration(s) from the uploaded image."
+            "All mandatory Legal Metrology declarations verified "
+            "compliant by Phase 7 engine."
+            if status_val == "PASS"
+            else f"Phase 7 Rule engine detected "
+                 f"{report.summary.potential_violations} violation(s) "
+                 f"and {report.summary.review_required} review item(s)."
         ),
-        "confidence": overall_confidence,
+        "confidence": round(report.compliance_score / 100.0, 2),
         "flags": [v["description"] for v in violations],
         "violations": violations,
-        "suggestedNextStep": "All declarations verified. Proceed to save inspection record." if not violations else "Flagged for manual officer review."
+        "report": report.model_dump(),
+        "suggestedNextStep": (
+            "Verified compliant. Proceed to save inspection record."
+            if status_val == "PASS"
+            else "Flagged for legal officer review."
+        )
     }
 
 
-# ==============================================================================
-# MAIN PIPELINE FUNCTIONS (Updated to use AI)
-# ==============================================================================
+def create_scan_record(
+    db: Session,
+    original_filename: str,
+    image_path: str,
+    file_type: str,
+    file_size: int,
+    user_id: Optional[str] = None,
+    status: str = "PENDING"
+) -> Scan:
+    effective_user_id = user_id or "citizen-anon"
+
+    ensure_user_exists(
+        db,
+        effective_user_id,
+        f"{effective_user_id}@citizen.com",
+        "Citizen User",
+        "CITIZEN"
+    )
+
+    scan = Scan(
+        user_id=effective_user_id,
+        image_path=image_path,
+        original_filename=original_filename,
+        file_type=file_type,
+        file_size=file_size,
+        status=status,
+    )
+
+    db.add(scan)
+    db.commit()
+    db.refresh(scan)
+
+    return scan
+
+
 def upload_package_image(
     db: Session,
     contents: bytes,
@@ -471,22 +494,32 @@ def upload_package_image(
     user_id: Optional[str] = None
 ) -> Dict[str, Any]:
     """Upload package image - keeping existing function for compatibility."""
+
     effective_user_id = user_id or "citizen-anon"
-    ensure_user_exists(db, effective_user_id, f"{effective_user_id}@citizen.com", "Citizen User", "CITIZEN")
 
-    proc_meta = process_image_pipeline(contents, filename, effective_user_id)
+    ensure_user_exists(
+        db,
+        effective_user_id,
+        f"{effective_user_id}@citizen.com",
+        "Citizen User",
+        "CITIZEN"
+    )
 
-    scan_record = Scan(
-        user_id=effective_user_id,
-        image_path=proc_meta["image_path"],
+    proc_meta = process_image_pipeline(
+        contents,
+        filename,
+        effective_user_id
+    )
+
+    scan_record = create_scan_record(
+        db=db,
         original_filename=filename,
+        image_path=proc_meta["image_path"],
         file_type=f"image/{proc_meta['file_ext'].replace('.', '')}",
         file_size=proc_meta["file_size"],
+        user_id=effective_user_id,
         status=ScanStatusEnum.COMPLETED.value,
     )
-    db.add(scan_record)
-    db.commit()
-    db.refresh(scan_record)
 
     formatted_scan_id = f"SCAN-{scan_record.id:05d}"
 
@@ -517,21 +550,40 @@ def execute_scan_pipeline(
     This replaces the previous mock pipeline.
     ALL data comes from the actual uploaded image - NO mock/fallback data.
     """
-    effective_user_id = user_id or "citizen-anon"
-    ensure_user_exists(db, effective_user_id, f"{effective_user_id}@citizen.com", "Citizen User", "CITIZEN")
 
-    # Step 1: Image processing (keeps existing for file management)
-    proc_meta = process_image_pipeline(contents, filename, effective_user_id)
+    effective_user_id = user_id or "citizen-anon"
+
+    ensure_user_exists(
+        db,
+        effective_user_id,
+        f"{effective_user_id}@citizen.com",
+        "Citizen User",
+        "CITIZEN"
+    )
+
+    # Step 1: Image processing
+    proc_meta = process_image_pipeline(
+        contents,
+        filename,
+        effective_user_id
+    )
+
     quality_check = proc_meta["quality"]
 
-    # Step 2: Run AI pipeline (replaces mock OCR and extraction)
-    ai_results = run_ai_pipeline(proc_meta, image_bytes=contents)
+    # Step 2: Run AI pipeline
+    ai_results = run_ai_pipeline(
+        proc_meta,
+        image_bytes=contents
+    )
+
     declarations = ai_results.get("declarations", {})
     fields = ai_results.get("fields", {})
     raw_text = ai_results.get("raw_text", "")
 
-    # Step 3: Run rule engine with actual declarations (NOT hardcoded data)
-    rule_results = run_legal_metrology_rule_engine(declarations, fields)
+    # Step 3: Run rule engine with actual declarations
+    rule_results = run_legal_metrology_rule_engine(
+        declarations
+    )
 
     # Step 4: Save scan record with REAL extracted data
     scan_record = Scan(
@@ -541,8 +593,11 @@ def execute_scan_pipeline(
         file_type=f"image/{proc_meta['file_ext'].replace('.', '')}",
         file_size=proc_meta["file_size"],
         status=ScanStatusEnum.COMPLETED.value,
-        # Save actual AI-extracted data - NEVER hardcoded
+
+        # Actual AI extracted data
         detected_data=declarations,
+
+        # Actual compliance result
         screening_data={
             "result": rule_results["result"],
             "explanation": rule_results["explanation"],
@@ -550,6 +605,8 @@ def execute_scan_pipeline(
             "flags": rule_results["flags"],
             "suggestedNextStep": rule_results["suggestedNextStep"],
         },
+
+        # Actual OCR data
         ocr_data={
             "raw_text": raw_text,
             "ocr_boxes": ai_results.get("bounding_boxes", []),
@@ -557,13 +614,14 @@ def execute_scan_pipeline(
             "avg_confidence": ai_results.get("avg_confidence", 0.0),
         },
     )
+
     db.add(scan_record)
     db.commit()
     db.refresh(scan_record)
 
     formatted_scan_id = f"SCAN-{scan_record.id:05d}"
 
-    # Step 5: Prepare response with actual timestamp
+    # Step 5: Prepare response
     return {
         "id": formatted_scan_id,
         "scan_id": formatted_scan_id,
@@ -587,36 +645,95 @@ def execute_scan_pipeline(
             "suggestedNextStep": rule_results["suggestedNextStep"],
         },
         "violations": rule_results["violations"],
-        "createdAt": scan_record.created_at.isoformat() if scan_record.created_at else None
+        "createdAt": (
+            scan_record.created_at.isoformat()
+            if scan_record.created_at
+            else None
+        )
     }
 
 
-def validate_and_save_image(contents: bytes, filename: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+def validate_and_save_image(
+    contents: bytes,
+    filename: str,
+    user_id: Optional[str] = None
+) -> Dict[str, Any]:
     """Validate and save image - keeping existing for compatibility."""
-    return process_image_pipeline(contents, filename, user_id)
+
+    return process_image_pipeline(
+        contents,
+        filename,
+        user_id
+    )
 
 
 # Keep existing helper functions
-def list_scans(db: Session, skip: int = 0, limit: int = 100) -> List[Scan]:
-    return db.query(Scan).order_by(Scan.created_at.desc()).offset(skip).limit(limit).all()
+def list_scans(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100
+) -> List[Scan]:
+    return (
+        db.query(Scan)
+        .order_by(Scan.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
-def get_scan_by_id(db: Session, scan_id: int) -> Optional[Scan]:
-    return db.query(Scan).filter(Scan.id == scan_id).first()
+def get_scan_by_id(
+    db: Session,
+    scan_id: int
+) -> Optional[Scan]:
+    return db.query(Scan).filter(
+        Scan.id == scan_id
+    ).first()
 
 
-def delete_scan_record(db: Session, scan_id: int) -> bool:
-    scan = db.query(Scan).filter(Scan.id == scan_id).first()
+def delete_scan_record(
+    db: Session,
+    scan_id: int
+) -> bool:
+
+    scan = db.query(Scan).filter(
+        Scan.id == scan_id
+    ).first()
+
     if not scan:
         return False
+
     db.delete(scan)
     db.commit()
+
     return True
 
 
-def list_sessions(db: Session, skip: int = 0, limit: int = 100) -> List[InspectionSession]:
-    return db.query(InspectionSession).order_by(InspectionSession.created_at.desc()).offset(skip).limit(limit).all()
+def list_sessions(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100
+) -> List[InspectionSession]:
+
+    return (
+        db.query(InspectionSession)
+        .order_by(InspectionSession.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
-def get_session_by_id(db: Session, session_id: str) -> Optional[InspectionSession]:
-    return db.query(InspectionSession).filter(InspectionSession.id == session_id).first()
+def get_session_by_id(
+    db: Session,
+    session_id: str
+) -> Optional[InspectionSession]:
+
+    return db.query(InspectionSession).filter(
+        InspectionSession.id == session_id
+    ).first()
+    
+ 
+  
+        
+    

@@ -1,6 +1,3 @@
-"""
-AI Processing Engine Module
-- Image Preprocessing
-- OCR Text Detection
-- Named Entity & Key-Value Extraction
-"""
+from ai.inference import AIInferencePipeline
+
+__all__ = ["AIInferencePipeline"]

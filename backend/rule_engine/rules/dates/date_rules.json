@@ -1,0 +1,77 @@
+[
+  {
+    "identification": {
+      "rule_id": "DATE-001",
+      "rule_reference": "Rule 6(1)(d)",
+      "version": "1.0",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "all",
+      "exemptions": ["EXM-001", "EXM-002"]
+    },
+    "validation": {
+      "field": "mfg_date",
+      "condition": "presence",
+      "validation_type": "presence_check",
+      "validation_method": "check_date_presence"
+    },
+    "result": {
+      "severity": "HIGH",
+      "evidence_required": ["ocr_text"],
+      "description": "Month and Year of manufacture, packing, or import must be declared on the package."
+    },
+    "category": "dates"
+  },
+  {
+    "identification": {
+      "rule_id": "DATE-002",
+      "rule_reference": "Rule 6(1)(d)",
+      "version": "1.0",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "all",
+      "exemptions": ["EXM-001"]
+    },
+    "validation": {
+      "field": "mfg_date",
+      "condition": "format",
+      "validation_type": "date_format_parser",
+      "validation_method": "check_date_format"
+    },
+    "result": {
+      "severity": "MEDIUM",
+      "evidence_required": ["ocr_text"],
+      "description": "Date of manufacture/packing must follow valid MM/YYYY, Month YYYY, or DD/MM/YYYY format."
+    },
+    "category": "dates"
+  },
+  {
+    "identification": {
+      "rule_id": "DATE-003",
+      "rule_reference": "Rule 6(1)(d)",
+      "version": "1.0",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "all",
+      "exemptions": ["EXM-001"]
+    },
+    "validation": {
+      "field": "exp_date",
+      "condition": "consistency",
+      "validation_type": "date_comparator",
+      "validation_method": "check_date_validity"
+    },
+    "result": {
+      "severity": "HIGH",
+      "evidence_required": ["ocr_text"],
+      "description": "Expiry or Best Before date, if stated, must not precede manufacture date or declare impossible future years."
+    },
+    "category": "dates"
+  }
+]

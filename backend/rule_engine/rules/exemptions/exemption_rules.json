@@ -1,0 +1,52 @@
+[
+  {
+    "identification": {
+      "rule_id": "EXM-001",
+      "rule_reference": "Rule 26(a)",
+      "version": "1.0",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "small_packet",
+      "exemptions": []
+    },
+    "validation": {
+      "field": "package_weight",
+      "condition": "weight_volume_threshold",
+      "validation_type": "threshold_checker",
+      "validation_method": "check_small_pack_exemption"
+    },
+    "result": {
+      "severity": "INFO",
+      "evidence_required": ["net_quantity"],
+      "description": "Packages containing net weight or measure of 10g or 10ml or less are exempt from standard mandatory declarations."
+    },
+    "category": "exemptions"
+  },
+  {
+    "identification": {
+      "rule_id": "EXM-002",
+      "rule_reference": "Rule 3",
+      "version": "1.0",
+      "active": true
+    },
+    "applicability": {
+      "commodity": "all",
+      "package_type": "wholesale",
+      "exemptions": []
+    },
+    "validation": {
+      "field": "consumer_type",
+      "condition": "institutional_mark",
+      "validation_type": "consumer_type_checker",
+      "validation_method": "check_institutional_exemption"
+    },
+    "result": {
+      "severity": "INFO",
+      "evidence_required": ["consumer_type_declaration"],
+      "description": "Packages intended exclusively for Institutional Consumers or Industrial Consumers are exempt from retail packaging declaration rules."
+    },
+    "category": "exemptions"
+  }
+]

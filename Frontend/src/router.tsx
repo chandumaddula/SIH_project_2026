@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { createHashRouter, Navigate, RouteObject } from 'react-router-dom';
 import { useUserStore } from './store';
 
@@ -10,13 +10,20 @@ import { AdminMfaPage } from './features/auth/AdminMfaPage';
 import { Dashboard } from './features/dashboard/Dashboard';
 import { Home } from './features/home/Home';
 import { ScanPage } from './features/scan/ScanPage';
-import { MapPage } from './features/map/MapPage';
 import { Compliance } from './features/compliance/Compliance';
 import { InspectionPage } from './features/inspection/Inspection';
 import { History } from './features/history/History';
 import { Profile } from './features/profile/Profile';
 import { About } from './features/about/About';
 import { Settings } from './features/settings/Settings';
+
+const LoadingFallback = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '3rem', color: '#64748b' }}>
+    <span>Loading...</span>
+  </div>
+);
+
+const MapPage = lazy(() => import('./features/map/MapPage').then(m => ({ default: m.MapPage })));
 
 /* Employee imports */
 import { EmployeeDashboard } from './features/employee/EmployeeDashboard';
@@ -156,7 +163,11 @@ export const routes: RouteObject[] = [
       },
       {
         path: 'map',
-        element: <MapPage />,
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <MapPage />
+          </Suspense>
+        ),
       },
       {
         path: 'compliance',
