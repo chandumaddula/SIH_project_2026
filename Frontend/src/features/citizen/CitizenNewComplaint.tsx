@@ -68,7 +68,7 @@ export const CitizenNewComplaint: React.FC = () => {
         setForm(prev => ({
           ...prev,
           product: scan.detected.productName || prev.product,
-          description: `Preliminary screening result: ${scan.screening.result}. ${scan.screening.explanation}`,
+          description: `Preliminary screening result: ${scan.screening.result || 'N/A'}. ${scan.screening.explanation || ''}`,
         }));
       }
     })();

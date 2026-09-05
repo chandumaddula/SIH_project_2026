@@ -105,9 +105,11 @@ export const CitizenScanDetails: React.FC = () => {
     );
   }
 
-  const { result, explanation, confidence, flags, suggestedNextStep, detectedAt } = scan.screening;
+  const { result, explanation, confidence, flags, suggestedNextStep } = scan.screening;
   const display = RESULT_DISPLAY[result];
   const detected = scan.detected;
+  // Use the actual scan timestamp from the API - NEVER hardcoded
+  const scanTimestamp = scan.createdAt || new Date().toISOString();
 
   return (
     <div className="cit-scan-details">
@@ -131,7 +133,7 @@ export const CitizenScanDetails: React.FC = () => {
           <div>
             <h1 className="cit-scan-details__banner-title">{display.label}</h1>
             <p className="cit-scan-details__banner-meta">
-              Scan ID: {scan.id} • Confidence: {Math.round(confidence * 100)}% • {new Date(detectedAt).toLocaleString()}
+              Scan ID: {scan.id} • Confidence: {Math.round(confidence * 100)}% • {new Date(scanTimestamp).toLocaleString()}
             </p>
           </div>
         </div>
@@ -154,7 +156,7 @@ export const CitizenScanDetails: React.FC = () => {
           </section>
         )}
 
-        {/* Package images */}
+        {/* Package images - scan.images is string[] (URLs), not object array */}
         <section className="cit-scan-details__section">
           <h2 className="cit-scan-details__section-title">
             Package Images ({scan.images.length})
@@ -165,10 +167,9 @@ export const CitizenScanDetails: React.FC = () => {
             </p>
           ) : (
             <div className="cit-scan-details__images-grid">
-              {scan.images.map(img => (
-                <div key={img.id} className="cit-scan-details__image-card">
-                  <img src={img.dataUrl} alt={`Package ${img.type} view`} />
-                  <span className="cit-scan-details__image-type">{img.type}</span>
+              {scan.images.map((imgUrl, idx) => (
+                <div key={idx} className="cit-scan-details__image-card">
+                  <img src={imgUrl} alt={`Package view ${idx + 1}`} />
                 </div>
               ))}
             </div>

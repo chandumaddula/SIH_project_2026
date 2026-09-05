@@ -16,7 +16,7 @@ class OCRResponse(BaseModel):
     id: int
     extracted_text: Optional[str] = None
     bounding_boxes: List[BoundingBoxSchema] = []
-    confidence_score: float = 0.95
+    confidence_score: float = 0.0
     created_at: datetime
 
     class Config:
