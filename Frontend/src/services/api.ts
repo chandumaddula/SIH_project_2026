@@ -1,5 +1,6 @@
 import { AuthState, AuthUser } from '../types/user';
 import { CitizenComplaint } from '../types/complaint';
+import { AIScanResponse } from '../types/scan';
 import {
   mockEmployees,
   mockEmployeePasswords,
@@ -9,6 +10,9 @@ import {
   mockAdminPasswords,
   mockComplaints
 } from './mockData';
+
+// Backend base URL — relative paths work with Vite proxy in dev; absolute URL for prod
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || '';
 
 type PersonType = 'employee' | 'citizen' | 'admin';
 
@@ -194,9 +198,54 @@ export const complaintService = {
 };
 
 /* ==========================================================================
+   Scan Service — calls the real /api/v1/ai/scan endpoint
+   ========================================================================== */
+export const scanService = {
+  /**
+   * Upload a package image to the backend AI pipeline.
+   * Returns real OCR data, extracted fields, and compliance screening results.
+   */
+  async scanPackage(file: File): Promise<AIScanResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('image', file); // backend also accepts "image" field
+
+    const response = await fetch(`${API_BASE_URL}/api/v1/ai/scan`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      let detail = `Scan failed (HTTP ${response.status})`;
+      try {
+        const err = await response.json();
+        detail = err.detail || detail;
+      } catch {
+        // ignore JSON parse errors
+      }
+      throw new Error(detail);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Health check for the AI pipeline — useful to show backend status in the UI.
+   */
+  async checkHealth(): Promise<{ status: string; ai_flow_pipeline: boolean; ocr_engine: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/ai/health`);
+    if (!response.ok) {
+      throw new Error(`AI health check failed (HTTP ${response.status})`);
+    }
+    return response.json();
+  },
+};
+
+/* ==========================================================================
    Services Index
    ========================================================================== */
 export const api = {
   auth: authService,
   complaint: complaintService,
+  scan: scanService,
 };
