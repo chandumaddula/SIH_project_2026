@@ -152,15 +152,18 @@ const ImageCard: React.FC<ImageCardProps> = ({ image, onRemove, onChangeType, on
 export const StartNewInspection: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useUserStore();
-  const { setInspectionData } = useInspectionStore();
+  const { setInspectionData, inspectionId: storeInspectionId, images: storeImages, form: storeForm } = useInspectionStore();
 
-  // Header info
-  const inspectionId = generateInspectionId();
+  // Header info - use existing inspection ID from store if available, otherwise generate new
+  const inspectionId = storeInspectionId || generateInspectionId();
   const [currentDate] = useState(getCurrentDate());
   const [currentTime] = useState(getCurrentTime());
 
-  // Images
-  const [images, setImages] = useState<PackageImage[]>([]);
+  // Check if data was pre-filled from scan
+  const hasPrefilledData = storeImages && storeImages.length > 0 && storeForm && storeForm.productName;
+
+  // Images - pre-populate from store if available
+  const [images, setImages] = useState<PackageImage[]>(storeImages || []);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [pendingUpload, setPendingUpload] = useState<string | null>(null);
@@ -168,8 +171,16 @@ export const StartNewInspection: React.FC = () => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
-  // Form fields
-  const [form, setForm] = useState({
+  // Form fields - pre-populate from store if available
+  const [form, setForm] = useState<{
+    productName: string;
+    productCategory: string;
+    manufacturer: string;
+    retailer: string;
+    location: string;
+    packageType: string;
+    barcode: string;
+  }>(storeForm || {
     productName: '',
     productCategory: '',
     manufacturer: '',
@@ -353,7 +364,11 @@ export const StartNewInspection: React.FC = () => {
       <div className="sni-header">
         <div className="sni-header__left">
           <h1 className="page-title">Start New Inspection</h1>
-          <p className="page-subtitle">Capture or upload package images for compliance screening.</p>
+          <p className="page-subtitle">
+            {hasPrefilledData
+              ? 'Review the auto-populated details from your scan, then continue to analysis.'
+              : 'Capture or upload package images for compliance screening.'}
+          </p>
         </div>
         <div className="sni-header__meta">
           <div className="sni-meta-item">
@@ -378,6 +393,18 @@ export const StartNewInspection: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Auto-fill notice when data came from scan */}
+      {hasPrefilledData && (
+        <div className="sni-autofill-notice">
+          <div className="sni-autofill-notice__icon">✨</div>
+          <div className="sni-autofill-notice__content">
+            <strong>Inspection Details Auto-Filled from Scan</strong>
+            <p>The product information has been automatically extracted from your scanned package image. You can edit any field if needed.</p>
+          </div>
+          <Badge variant="success" size="sm">From Scan</Badge>
+        </div>
+      )}
 
       <div className="sni-body">
         {/* Left column: Images + Inspection Details */}
@@ -423,17 +450,6 @@ export const StartNewInspection: React.FC = () => {
                   <div className="sni-capture-option__icon">🖼️</div>
                   <div className="sni-capture-option__label">Upload Images</div>
                   <div className="sni-capture-option__hint">JPG, PNG, WebP (max 10 MB)</div>
-                </button>
-
-                {/* QR/Barcode — optional */}
-                <button
-                  className="sni-capture-option sni-capture-option--optional"
-                  onClick={() => setValidationErrors(prev => [...prev, 'QR/Barcode scanning is optional and not yet implemented.'])}
-                  aria-label="Scan QR or barcode"
-                >
-                  <div className="sni-capture-option__icon">🔳</div>
-                  <div className="sni-capture-option__label">Scan QR / Barcode</div>
-                  <div className="sni-capture-option__hint sni-capture-option__hint--optional">Optional</div>
                 </button>
               </div>
 
@@ -865,7 +881,7 @@ export const StartNewInspection: React.FC = () => {
         /* Capture options */
         .sni-capture-options {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(2, 1fr);
           gap: var(--space-4);
           margin-bottom: var(--space-5);
         }
@@ -1221,6 +1237,37 @@ export const StartNewInspection: React.FC = () => {
           background: var(--color-gray-50);
           border-radius: var(--radius-sm);
           border-left: 2px solid var(--color-gray-300);
+        }
+
+        /* Auto-fill notice */
+        .sni-autofill-notice {
+          display: flex;
+          align-items: center;
+          gap: var(--space-3);
+          padding: var(--space-3) var(--space-4);
+          background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+          border: 2px solid #4caf50;
+          border-radius: var(--radius-lg);
+          margin-bottom: var(--space-4);
+        }
+        .sni-autofill-notice__icon {
+          font-size: 1.5rem;
+          flex-shrink: 0;
+        }
+        .sni-autofill-notice__content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-1);
+        }
+        .sni-autofill-notice__content strong {
+          color: #2e7d32;
+          font-size: var(--font-size-sm);
+        }
+        .sni-autofill-notice__content p {
+          margin: 0;
+          font-size: var(--font-size-xs);
+          color: #388e3c;
         }
       `}</style>
     </div>
