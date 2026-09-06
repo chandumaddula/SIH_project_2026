@@ -1,0 +1,15 @@
+# --- AI pipeline ---
+opencv-python-headless>=4.9,<5
+numpy>=1.26,<3
+pytesseract>=0.3.10,<0.4
+Pillow>=10.0
+
+# --- Backend API ---
+fastapi>=0.110,<1
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+pydantic>=2.5,<3
+
+# --- System dependency (install via apt, not pip) ---
+# tesseract-ocr must be installed on the host:
+#   sudo apt-get install -y tesseract-ocr tesseract-ocr-eng

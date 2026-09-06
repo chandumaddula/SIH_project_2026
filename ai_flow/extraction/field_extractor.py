@@ -80,10 +80,11 @@ class FieldExtractor:
             },
             "manufacturer": {
                 "patterns": [
-                    # Mfd. by / Mfg. by / Manufactured by / Manufacturer
-                    r"(?:Manufactured|Mfd\.?|Mfg\.?)\s*by\s*[:\-]?\s*(.+?)(?=\s*(?:\n|,$|Packed|Mfd|Pkd|$))",
-                    r"Manufacturer\s*[:\-]?\s*(.+?)(?=\s*(?:\n|,$|Packed|Mfd|Pkd|$))",
-                    r"Mfg\.?\s*[:\-]?\s*(.+?)(?=\s*(?:\n|,$|Packed|Mfd|Pkd|$))",
+                    # Mfd. by / Mfg. by / Manufactured by / Manufacturer — stop at any date label
+                    r"(?:Manufactured|Mfd\.?|Mfg\.?)\s*by\s*[:\-]?\s*(.+?)(?=\s*(?:Mfg\s*Date|Exp\.?\s*Date|Expiry|Best\s*Before|Use\s*Before|Date|EXP|"
+                    r"Batch|Lot|Net|Quantity|Price|MRP|Consumer|Customer|Country|Origin|FSSAI|"
+                    r"Phone|Call|Helpline|Address|Packed|Pkd|Batch|$))",
+                    r"Manufacturer\s*[:\-]?\s*(.+?)(?=\s*(?:Date|Mfg|Exp|Batch|Net|Quantity|Price|MRP|$))",
                 ],
                 "priority": 2
             },
@@ -467,18 +468,40 @@ class FieldExtractor:
 
     def _extract_address(self, ocr_results: List[Dict[str, Any]]) -> Optional[ExtractedField]:
         """Extract address (usually follows manufacturer/packer)."""
-        # Look for address patterns (pin codes, city names, common address formats)
-        address_patterns = [
-            r"\d{6}",  # Indian PIN code
+        # Look for explicit "Address:" label first, then fall back to PIN code matching
+        address_label_pattern = re.compile(r"Address\s*[:\-]?\s*(.+)", re.IGNORECASE)
+        # Patterns: Indian PIN code (6 digits) or "City, ST 123456"
+        generic_patterns = [
+            r"\b\d{6}\b",  # Indian PIN code
             r"[A-Z][a-z]+\s*,?\s*[A-Z]{2}\s*\d{6}",
         ]
 
+        # 1) Explicit "Address: ..." labels are most reliable
         for result in ocr_results:
             text = result.get("text", "")
             confidence = result.get("confidence", 0.0)
             bbox = result.get("bbox", [0, 0, 0, 0])
+            m = address_label_pattern.search(text)
+            if m:
+                value = m.group(1).strip()
+                value = re.sub(r'\s+', ' ', value).strip().rstrip('.,;')
+                if value:
+                    return ExtractedField(
+                        field_name="address",
+                        value=value,
+                        confidence=confidence,
+                        source_text=text,
+                        bbox=bbox,
+                    )
 
-            for pattern in address_patterns:
+        # 2) Fallback: line containing a PIN code (but not a barcode/EAN-13/FSSAI)
+        for result in ocr_results:
+            text = result.get("text", "")
+            confidence = result.get("confidence", 0.0)
+            bbox = result.get("bbox", [0, 0, 0, 0])
+            if re.search(r"\bFSSAI\b|Batch\s*No|Barcode|EAN", text, re.IGNORECASE):
+                continue
+            for pattern in generic_patterns:
                 if re.search(pattern, text):
                     return ExtractedField(
                         field_name="address",
@@ -507,6 +530,16 @@ class FieldExtractor:
                     # Clean up the value
                     value = re.sub(r'\s+', ' ', value).strip()
                     value = value.rstrip('.,;')
+
+                    # Strip trailing field labels that shouldn't be part of the value
+                    # e.g., "Sunshine Foods Pvt Ltd Mfg Date: 07/2026" → "Sunshine Foods Pvt Ltd"
+                    value = re.sub(
+                        r'\s+(Mfg\.?\s*Date|Mfg\.?\s*by|by|Date|Exp\.?\s*Date|Expiry|Best\s+Before|Use\s+Before'
+                        r'|Batch|Lot|Net\s+Qty|Net\s+Weight|MRP|Consumer\s+Care|'
+                        r'Customer\s+Care|Helpline|Country|Origin|FSSAI|Address|Phone'
+                        r')\s*[:\-]?\s*[\d/\-A-Za-z\.\s]*$',
+                        '', value, flags=re.IGNORECASE
+                    ).strip()
 
                     if len(value) > 0:
                         return ExtractedField(

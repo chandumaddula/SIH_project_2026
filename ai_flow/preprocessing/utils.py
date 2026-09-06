@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 
 
 def validate_image_quality(img: np.ndarray) -> Dict[str, Any]:
@@ -57,7 +57,7 @@ def validate_image_quality(img: np.ndarray) -> Dict[str, Any]:
     bright_pixels = np.sum(gray > 252)
     glare_ratio = bright_pixels / total if total > 0 else 0
 
-    if glare_ratio > 0.65:
+    if glare_ratio > 0.92:
         defects.append("EXCESSIVE_GLARE")
 
     # 3. Overall quality score

@@ -1,115 +1,176 @@
 from typing import List, Dict, Any, Tuple, Optional
 from ai.schemas.ai_result import ParsedDeclarations, FieldDetail, FieldEvidence, OCRBoundingBox
-from ai.extraction.price_parser import parse_mrp_price
-from ai.extraction.quantity_parser import parse_net_quantity
-from ai.extraction.date_parser import parse_manufacture_date
-from ai.extraction.manufacturer_parser import parse_manufacturer_details
-from ai.extraction.consumer_care_parser import parse_consumer_care_details
 
-def extract_all_declarations(raw_text: str, bounding_boxes: Optional[List[OCRBoundingBox]] = None) -> Tuple[ParsedDeclarations, List[FieldEvidence]]:
-    mfg_details = parse_manufacturer_details(raw_text)
-    dates = parse_manufacture_date(raw_text)
 
-    # Build structured FieldDetail objects with value, confidence, bbox, and source_text
-    product_name_fd = FieldDetail(
-        value="Fresh Farms Refined Vegetable Oil",
-        confidence=0.96,
-        bbox=[100, 50, 400, 90],
-        source_text="Fresh Farms Refined Vegetable Oil"
-    )
+def _safe(val: Any) -> Optional[str]:
+    return val if val is not None else None
 
-    generic_name_fd = FieldDetail(
-        value="Refined Soybean Oil",
-        confidence=0.94,
-        bbox=[100, 95, 300, 130],
-        source_text="Refined Soybean Oil"
-    )
 
-    mrp_val = parse_mrp_price(raw_text)
+def _best_bbox(bboxes: List[OCRBoundingBox], keywords: List[str]) -> Optional[List[int]]:
+    """Find the bbox for the text containing any of the keywords."""
+    for bbox in bboxes:
+        text_lower = bbox.text.lower()
+        if any(kw.lower() in text_lower for kw in keywords):
+            return [bbox.box["x"], bbox.box["y"], bbox.box["w"], bbox.box["h"]]
+    return None
+
+
+def extract_all_declarations(
+    raw_text: str,
+    bounding_boxes: Optional[List[OCRBoundingBox]] = None
+) -> Tuple[ParsedDeclarations, List[FieldEvidence]]:
+    """
+    Parse raw OCR text and bounding boxes to extract Legal Metrology declarations.
+    Real regex-based parsing — no hardcoded product names or prices.
+    """
+    if bounding_boxes is None:
+        bounding_boxes = []
+
+    lines = raw_text.split("|")
+    lines = [l.strip() for l in lines if l.strip()]
+
+    # ---------- MRP ----------
+    mrp_bbox = _best_bbox(bounding_boxes, ["mrp", "m.r.p", "retail price", "₹"])
+    mrp_value, mrp_conf = _parse_mrp(lines)
     mrp_fd = FieldDetail(
-        value=mrp_val or "₹ 240.00 (Inclusive of all taxes)",
-        confidence=0.97,
-        bbox=[420, 680, 610, 735],
-        source_text="MRP Rs. 240.00/- (Incl. of all taxes)"
+        value=_safe(mrp_value),
+        confidence=mrp_conf,
+        bbox=mrp_bbox,
+        source_text=mrp_value or "",
     )
 
-    net_qty_val = parse_net_quantity(raw_text)
+    # ---------- Net Quantity ----------
+    qty_bbox = _best_bbox(bounding_boxes, ["net", "qty", "quantity", "wt", "weight", "ml", "litre", "kg", "gm"])
+    qty_value, qty_conf = _parse_net_quantity(lines)
     net_qty_fd = FieldDetail(
-        value=net_qty_val or "1 L (1000 ml)",
-        confidence=0.98,
-        bbox=[50, 160, 250, 195],
-        source_text="Net Qty: 1 L (1000 ml)"
+        value=_safe(qty_value),
+        confidence=qty_conf,
+        bbox=qty_bbox,
+        source_text=qty_value or "",
     )
 
-    mfg_fd = FieldDetail(
-        value=mfg_details["manufacturer"],
-        confidence=0.91,
-        bbox=[50, 200, 450, 250],
-        source_text="Mfd by Fresh Farms Ltd., Delhi"
+    # ---------- Product Name (first substantial line, not a label) ----------
+    name_bbox = None
+    product_name = None
+    skip_words = {"mrp", "net", "qty", "quantity", "weight", "price", "rs", "₹", "mfg", "mfd", "exp",
+                  "batch", "lot", "fssai", "consumer", "customer", "phone", "call", "helpline",
+                  "country", "origin", "made in", "packed", "imported", "manufactured"}
+    for bbox in sorted(bounding_boxes, key=lambda b: b.box["y"]):
+        txt = bbox.text.strip()
+        if len(txt) < 3 or txt[0].isdigit():
+            continue
+        words = set(txt.lower().split())
+        if not words.intersection(skip_words) and name_bbox is None:
+            product_name = txt
+            name_bbox = [bbox.box["x"], bbox.box["y"], bbox.box["w"], bbox.box["h"]]
+            break
+
+    product_name_fd = FieldDetail(
+        value=_safe(product_name),
+        confidence=0.95 if product_name else 0.0,
+        bbox=name_bbox,
+        source_text=product_name or "",
     )
 
+    # ---------- Manufacturer ----------
+    mfr_bbox = _best_bbox(bounding_boxes, ["manufactured", "mfg", "mfd", "manufacturer", "marketed"])
+    mfr_value, mfr_conf = _parse_manufacturer(lines)
+    generic_name_fd = FieldDetail(
+        value=None,
+        confidence=0.0,
+        bbox=None,
+        source_text="",
+    )
+    mfr_fd = FieldDetail(
+        value=_safe(mfr_value),
+        confidence=mfr_conf,
+        bbox=mfr_bbox,
+        source_text=mfr_value or "",
+    )
+
+    # ---------- Packer ----------
+    packer_value, packer_conf = _parse_packer(lines)
     packer_fd = FieldDetail(
-        value=mfg_details["packer"],
-        confidence=0.90,
-        bbox=[50, 255, 400, 290],
-        source_text="Packer: Fresh Farms Packaging Unit B"
+        value=_safe(packer_value),
+        confidence=packer_conf,
+        bbox=None,
+        source_text=packer_value or "",
     )
 
+    # ---------- Importer ----------
+    importer_value, importer_conf = _parse_importer(lines)
     importer_fd = FieldDetail(
-        value=mfg_details["importer"],
-        confidence=0.89,
-        bbox=[50, 295, 380, 325],
-        source_text="Importer: Global Trade Importers"
+        value=_safe(importer_value),
+        confidence=importer_conf,
+        bbox=None,
+        source_text=importer_value or "",
     )
 
+    # ---------- Address ----------
+    addr_value, addr_conf = _parse_address(lines)
     address_fd = FieldDetail(
-        value=mfg_details["address"],
-        confidence=0.92,
-        bbox=[50, 330, 500, 370],
-        source_text="Plot 45, Industrial Area, Phase II, Delhi - 110001"
+        value=_safe(addr_value),
+        confidence=addr_conf,
+        bbox=None,
+        source_text=addr_value or "",
     )
 
+    # ---------- Country of Origin ----------
+    coo_bbox = _best_bbox(bounding_boxes, ["country", "origin", "made in", "c.o.o"])
+    coo_value, coo_conf = _parse_country_of_origin(lines)
     origin_fd = FieldDetail(
-        value=mfg_details["countryOfOrigin"],
-        confidence=0.99,
-        bbox=[50, 375, 200, 400],
-        source_text="Country of Origin: India"
+        value=_safe(coo_value),
+        confidence=coo_conf,
+        bbox=coo_bbox,
+        source_text=coo_value or "",
     )
 
+    # ---------- Manufacturing Date ----------
+    mfg_bbox = _best_bbox(bounding_boxes, ["mfg", "mfd", "manufactured", "packed", "packing"])
+    mfg_value, mfg_conf = _parse_manufacturing_date(lines)
     mfg_date_fd = FieldDetail(
-        value=dates["mfgDate"],
-        confidence=0.94,
-        bbox=[50, 405, 220, 435],
-        source_text="Mfd Date: 15/06/2024"
+        value=_safe(mfg_value),
+        confidence=mfg_conf,
+        bbox=mfg_bbox,
+        source_text=mfg_value or "",
     )
 
+    # ---------- Expiry Date ----------
+    exp_bbox = _best_bbox(bounding_boxes, ["exp", "expiry", "best before", "use before"])
+    exp_value, exp_conf = _parse_expiry_date(lines)
     exp_date_fd = FieldDetail(
-        value=dates["expDate"],
-        confidence=0.93,
-        bbox=[230, 405, 400, 435],
-        source_text="Exp Date: 14/06/2025"
+        value=_safe(exp_value),
+        confidence=exp_conf,
+        bbox=exp_bbox,
+        source_text=exp_value or "",
     )
 
+    # ---------- Batch Number ----------
+    batch_value, batch_conf = _parse_batch_number(lines)
     batch_fd = FieldDetail(
-        value="VEG-2024-045",
-        confidence=0.92,
-        bbox=[50, 440, 250, 470],
-        source_text="Batch No: VEG-2024-045"
+        value=_safe(batch_value),
+        confidence=batch_conf,
+        bbox=None,
+        source_text=batch_value or "",
     )
 
-    consumer_care_val = parse_consumer_care_details(raw_text)
+    # ---------- Consumer Care ----------
+    care_bbox = _best_bbox(bounding_boxes, ["consumer", "customer", "helpline", "care", "phone", "call"])
+    care_value, care_conf = _parse_consumer_care(lines)
     care_fd = FieldDetail(
-        value=consumer_care_val or "Tel: 1800-120-1234 | Email: care@freshfarms.in",
-        confidence=0.89,
-        bbox=[50, 475, 450, 515],
-        source_text="Consumer Care Tel: 1800-120-1234 care@freshfarms.in"
+        value=_safe(care_value),
+        confidence=care_conf,
+        bbox=care_bbox,
+        source_text=care_value or "",
     )
 
+    # ---------- Barcode ----------
+    barcode_value, barcode_conf = _parse_barcode(lines)
     barcode_fd = FieldDetail(
-        value="8901234567890",
-        confidence=0.99,
-        bbox=[50, 520, 250, 580],
-        source_text="8901234567890"
+        value=_safe(barcode_value),
+        confidence=barcode_conf,
+        bbox=None,
+        source_text=barcode_value or "",
     )
 
     declarations = ParsedDeclarations(
@@ -117,7 +178,7 @@ def extract_all_declarations(raw_text: str, bounding_boxes: Optional[List[OCRBou
         generic_name=generic_name_fd,
         mrp=mrp_fd,
         net_quantity=net_qty_fd,
-        manufacturer=mfg_fd,
+        manufacturer=mfr_fd,
         packer=packer_fd,
         importer=importer_fd,
         address=address_fd,
@@ -126,16 +187,169 @@ def extract_all_declarations(raw_text: str, bounding_boxes: Optional[List[OCRBou
         exp_date=exp_date_fd,
         batch_number=batch_fd,
         consumer_care=care_fd,
-        barcode=barcode_fd
+        barcode=barcode_fd,
     )
 
+    # Field evidence for UI display
     field_evidences = [
-        FieldEvidence(field="product_name", value=product_name_fd.value, confidence=product_name_fd.confidence, bbox=product_name_fd.bbox, source_text=product_name_fd.source_text),
-        FieldEvidence(field="mrp", value=mrp_fd.value, confidence=mrp_fd.confidence, bbox=mrp_fd.bbox, source_text=mrp_fd.source_text),
-        FieldEvidence(field="net_quantity", value=net_qty_fd.value, confidence=net_qty_fd.confidence, bbox=net_qty_fd.bbox, source_text=net_qty_fd.source_text),
-        FieldEvidence(field="manufacturer", value=mfg_fd.value, confidence=mfg_fd.confidence, bbox=mfg_fd.bbox, source_text=mfg_fd.source_text),
-        FieldEvidence(field="consumer_care", value=care_fd.value, confidence=care_fd.confidence, bbox=care_fd.bbox, source_text=care_fd.source_text),
-        FieldEvidence(field="mfg_date", value=mfg_date_fd.value, confidence=mfg_date_fd.confidence, bbox=mfg_date_fd.bbox, source_text=mfg_date_fd.source_text),
+        FieldEvidence(field="product_name", value=product_name, confidence=product_name_fd.confidence,
+                      bbox=name_bbox, source_text=product_name or ""),
+        FieldEvidence(field="mrp", value=mrp_value, confidence=mrp_conf,
+                      bbox=mrp_bbox, source_text=mrp_value or ""),
+        FieldEvidence(field="net_quantity", value=qty_value, confidence=qty_conf,
+                      bbox=qty_bbox, source_text=qty_value or ""),
+        FieldEvidence(field="manufacturer", value=mfr_value, confidence=mfr_conf,
+                      bbox=mfr_bbox, source_text=mfr_value or ""),
+        FieldEvidence(field="consumer_care", value=care_value, confidence=care_conf,
+                      bbox=care_bbox, source_text=care_value or ""),
+        FieldEvidence(field="mfg_date", value=mfg_value, confidence=mfg_conf,
+                      bbox=mfg_bbox, source_text=mfg_value or ""),
     ]
 
     return declarations, field_evidences
+
+
+# ------------------------------------------------------------------
+# Individual field parsers
+# ------------------------------------------------------------------
+import re
+
+_MRP_PAT = re.compile(
+    r"(?:M\.?R\.?P\.?|Maximum\s*Retail\s*Price|Retail\s*Price)\s*[:\-]?\s*"
+    r"(?:Rs\.?|INR\.?|₹)\s*([\d,]+\.?\d*)",
+    re.IGNORECASE,
+)
+_MRP_BARE = re.compile(r"₹\s*([\d,]+\.?\d*)", re.IGNORECASE)
+
+
+def _parse_mrp(lines: List[str]) -> Tuple[Optional[str], float]:
+    for line in lines:
+        m = _MRP_PAT.search(line)
+        if m:
+            return f"₹{m.group(1)}", 0.95
+        m = _MRP_BARE.search(line)
+        if m:
+            return f"₹{m.group(1)}", 0.80
+    return None, 0.0
+
+
+def _parse_net_quantity(lines: List[str]) -> Tuple[Optional[str], float]:
+    pat = re.compile(
+        r"Net\s*(?:Qty|Quantity|Weight|Volume|Content|Wt\.?)?\s*[:\-]?\s*"
+        r"([\d,]+\.?\d*)\s*(g|gm|kgs?|kg|ml|l|ltr|L|pcs|pieces)\b",
+        re.IGNORECASE,
+    )
+    for line in lines:
+        m = pat.search(line)
+        if m:
+            return f"{m.group(1)} {m.group(2)}", 0.95
+    return None, 0.0
+
+
+def _parse_manufacturer(lines: List[str]) -> Tuple[Optional[str], float]:
+    pat = re.compile(
+        r"(?:Manufactured|Mfd\.?|Mfg\.?)\s*by\s*[:\-]?\s*(.+)",
+        re.IGNORECASE,
+    )
+    for line in lines:
+        m = pat.search(line)
+        if m:
+            return m.group(1).strip(), 0.90
+    return None, 0.0
+
+
+def _parse_packer(lines: List[str]) -> Tuple[Optional[str], float]:
+    pat = re.compile(r"(?:Packed|Packer|Pkd\.?)\s*(?:by)?\s*[:\-]?\s*(.+)", re.IGNORECASE)
+    for line in lines:
+        m = pat.search(line)
+        if m:
+            return m.group(1).strip(), 0.88
+    return None, 0.0
+
+
+def _parse_importer(lines: List[str]) -> Tuple[Optional[str], float]:
+    pat = re.compile(r"(?:Imported|Importer)\s*by\s*[:\-]?\s*(.+)", re.IGNORECASE)
+    for line in lines:
+        m = pat.search(line)
+        if m:
+            return m.group(1).strip(), 0.88
+    return None, 0.0
+
+
+def _parse_address(lines: List[str]) -> Tuple[Optional[str], float]:
+    # Look for Indian PIN codes
+    pat = re.compile(r"\b\d{6}\b")
+    for line in lines:
+        if pat.search(line):
+            return line.strip(), 0.85
+    return None, 0.0
+
+
+def _parse_country_of_origin(lines: List[str]) -> Tuple[Optional[str], float]:
+    pat = re.compile(
+        r"Country\s*(?:of\s*)?Origin\s*[:\-]?\s*(.+)", re.IGNORECASE,
+    )
+    pat2 = re.compile(r"Made\s+in\s+(.+)", re.IGNORECASE)
+    for line in lines:
+        m = pat.search(line)
+        if m:
+            return m.group(1).strip(), 0.95
+        m = pat2.search(line)
+        if m:
+            return m.group(1).strip(), 0.90
+    return None, 0.0
+
+
+def _parse_manufacturing_date(lines: List[str]) -> Tuple[Optional[str], float]:
+    pat = re.compile(
+        r"(?:Mfg\.?|Manufactured|Mfd\.?)\s*(?:Date)?\s*[:\-]?\s*([\d/\-\.A-Za-z ]+)",
+        re.IGNORECASE,
+    )
+    for line in lines:
+        m = pat.search(line)
+        if m:
+            return m.group(1).strip(), 0.90
+    return None, 0.0
+
+
+def _parse_expiry_date(lines: List[str]) -> Tuple[Optional[str], float]:
+    pat = re.compile(
+        r"(?:Expiry|Exp\.?|Best\s*Before)\s*[:\-]?\s*([\d/\-\.A-Za-z ]+)",
+        re.IGNORECASE,
+    )
+    for line in lines:
+        m = pat.search(line)
+        if m:
+            return m.group(1).strip(), 0.90
+    return None, 0.0
+
+
+def _parse_batch_number(lines: List[str]) -> Tuple[Optional[str], float]:
+    pat = re.compile(r"Batch\s*(?:No\.?|Number)?\s*[:\-]?\s*([A-Z0-9\-/]+)", re.IGNORECASE)
+    pat2 = re.compile(r"Lot\s*(?:No\.?)?\s*[:\-]?\s*([A-Z0-9\-/]+)", re.IGNORECASE)
+    for line in lines:
+        m = pat.search(line) or pat2.search(line)
+        if m:
+            return m.group(1).strip(), 0.90
+    return None, 0.0
+
+
+def _parse_consumer_care(lines: List[str]) -> Tuple[Optional[str], float]:
+    pat = re.compile(
+        r"(?:Consumer|Customer)\s*Care\s*[:\-]?\s*(.+)", re.IGNORECASE,
+    )
+    pat2 = re.compile(r"Helpline\s*[:\-]?\s*(.+)", re.IGNORECASE)
+    for line in lines:
+        m = pat.search(line) or pat2.search(line)
+        if m:
+            return m.group(1).strip(), 0.88
+    return None, 0.0
+
+
+def _parse_barcode(lines: List[str]) -> Tuple[Optional[str], float]:
+    pat = re.compile(r"\b([2-9]\d{12})\b")  # EAN-13
+    for line in lines:
+        m = pat.search(line)
+        if m:
+            return m.group(1), 0.95
+    return None, 0.0
