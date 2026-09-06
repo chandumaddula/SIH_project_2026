@@ -1,12 +1,11 @@
 /* ==========================================================================
    Extracted Information Service
-   Transforms mock OCR results into editable extracted fields for Task F.
-   Replaces placeholders when real OCR backend is available.
-
-   IMPORTANT: All data is demo/mock. No real OCR is performed.
+   Transforms real OCR results from the AI pipeline into editable extracted fields
+   for the inspection workflow. Works with the real /api/v1/ai/scan response.
    ========================================================================== */
 
 import { MockOCRResult, DeclarationInfo } from './analysis.service';
+import { AIScanResponse } from '../types/scan';
 
 /* ---- Types ---- */
 
@@ -241,4 +240,101 @@ export const applyOfficerNotes = (
   notes: string
 ): ExtractedInformation => {
   return { ...info, officerNotes: notes };
+};
+
+/* ==========================================================================
+   Real API integration — convert AIScanResponse → ExtractedInformation
+   ========================================================================== */
+
+const API_FIELD_LABEL_MAP: Record<string, string> = {
+  mrp: 'Maximum Retail Price (MRP)',
+  net_quantity: 'Net Quantity',
+  product_name: 'Product Name',
+  manufacturer: 'Manufacturer',
+  packer: 'Packer',
+  importer: 'Importer',
+  consumer_care: 'Consumer Care',
+  country_of_origin: 'Country of Origin',
+  address: 'Address',
+  manufacturing_date: 'Manufacturing Date',
+  expiry_date: 'Expiry Date / Best Before',
+  batch_number: 'Batch Number',
+  barcode: 'Barcode',
+  fssai_license: 'FSSAI License',
+  generic_name: 'Generic Name',
+};
+
+const API_FIELD_TYPE_MAP: Record<string, DeclarationInfo['type']> = {
+  mrp: 'mrp',
+  net_quantity: 'net_quantity',
+  product_name: 'product_name',
+  manufacturer: 'manufacturer',
+  packer: 'packer',
+  importer: 'importer',
+  consumer_care: 'consumer_care',
+  country_of_origin: 'country',
+  address: 'other',
+  manufacturing_date: 'mfg_date',
+  expiry_date: 'best_before',
+  batch_number: 'batch_number',
+  barcode: 'barcode',
+  fssai_license: 'fssai_license',
+  generic_name: 'product_name',
+};
+
+/**
+ * Build a full ExtractedInformation from a real AIScanResponse.
+ * This is the canonical entry point used by the inspection workflow
+ * after the image analysis has completed.
+ */
+export const buildExtractedInformationFromAPI = (
+  api: AIScanResponse,
+  inspectionId: string,
+  options?: { packageType?: string; retailer?: string }
+): ExtractedInformation => {
+  const fields: ExtractedField[] = (api.field_evidences || []).map((f) => {
+    const value = f.value !== null && f.value !== undefined ? String(f.value) : '';
+    const confidencePct = Math.round((f.confidence || 0) * 100);
+    return {
+      id: `field-${f.field}`,
+      declarationType: API_FIELD_TYPE_MAP[f.field] ?? 'other',
+      label: API_FIELD_LABEL_MAP[f.field] ?? f.field.replace(/_/g, ' '),
+      originalValue: value,
+      currentValue: value,
+      confidence: confidencePct,
+      confidenceLevel: getConfidenceLevel(confidencePct),
+      status: getFieldStatus(confidencePct, value),
+      sourceImageType: 'Package Image',
+      rawText: f.source_text || value,
+      isEdited: false,
+    };
+  });
+
+  // Pull product summary fields from declarations
+  const declarations = api.extracted_declarations || {};
+  const productSummary: ProductSummary = {
+    productName: (declarations.productName as string) || (declarations.product_name as string) || 'Unknown Product',
+    genericDescription: ((declarations.productName as string) || 'Unknown Product') + ' — pre-packaged commodity',
+    productCategory: 'Packaged Food',
+    packageType: options?.packageType ?? 'Not specified',
+    manufacturer: (declarations.manufacturer as string) || 'Not detected',
+    packer: (declarations.packer as string) || 'Not detected',
+    importer: (declarations.importer as string) || 'Not applicable',
+    retailer: options?.retailer ?? 'Not recorded',
+    countryOfOrigin: (declarations.countryOfOrigin as string) || (declarations.country_of_origin as string) || 'Not detected',
+  };
+
+  const qualitySummary = buildQualitySummary(fields);
+
+  // Raw text — use the real raw_text from the API
+  const rawText = api.raw_text || '';
+
+  return {
+    inspectionId,
+    productSummary,
+    fields,
+    rawText,
+    qualitySummary,
+    officerNotes: '',
+  };
 };

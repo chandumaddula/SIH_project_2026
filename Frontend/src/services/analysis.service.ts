@@ -1,13 +1,23 @@
 /* ==========================================================================
    Analysis Service
-   Mock package image analysis for the Employee inspection workflow.
-   Replace with real OCR/API calls when backend is available.
-
-   IMPORTANT: All analysis is simulated. No real OCR, AI, or computer
-   vision is performed. Results are clearly labeled as demo/mock.
+   Real package image analysis via the FastAPI backend (/api/v1/ai/scan).
    ========================================================================== */
 
-/* ---- Types ---- */
+import { AIScanResponse } from '../types/scan';
+
+/* ---- In-memory cache for the most recent API response ---- */
+/* Used by InspectionAnalysis to hand off the real API result to ExtractedInformation */
+let _lastApiResult: AIScanResponse | null = null;
+
+export const getLastApiResult = (): AIScanResponse | null => _lastApiResult;
+export const setLastApiResult = (result: AIScanResponse | null) => {
+  _lastApiResult = result;
+};
+export const clearLastApiResult = () => {
+  _lastApiResult = null;
+};
+
+/* ---- Types (unchanged — same shape as before) ---- */
 
 export type AnalysisStage =
   | 'received'
@@ -38,7 +48,7 @@ export interface DetectedText {
 }
 
 export interface DeclarationInfo {
-  type: 'mrp' | 'net_quantity' | 'manufacturer' | 'batch_number' | 'best_before' | 'ingredients' | 'marketed_by' | 'country' | 'other';
+  type: 'mrp' | 'net_quantity' | 'manufacturer' | 'batch_number' | 'best_before' | 'ingredients' | 'marketed_by' | 'country' | 'product_name' | 'consumer_care' | 'mfg_date' | 'exp_date' | 'barcode' | 'fssai_license' | 'packer' | 'importer' | 'address' | 'other';
   label: string;
   value: string;
   confidence: number; // 0-100
@@ -93,150 +103,264 @@ export const ANALYSIS_STAGES: StageProgress[] = [
 /* ---- Helpers ---- */
 
 const STAGE_DURATIONS: Record<AnalysisStage, number> = {
-  received: 300,
-  quality_check: 500,
-  preprocessing: 600,
-  perspective_correction: 700,
-  text_detection: 800,
-  ocr: 1000,
-  text_normalization: 600,
-  declaration_extraction: 800,
-  product_classification: 600,
-  applicability_check: 700,
-  compliance_screening: 900,
+  received: 250,
+  quality_check: 400,
+  preprocessing: 500,
+  perspective_correction: 600,
+  text_detection: 700,
+  ocr: 800,
+  text_normalization: 500,
+  declaration_extraction: 700,
+  product_classification: 500,
+  applicability_check: 600,
+  compliance_screening: 800,
 };
 
-/* ---- Mock data ---- */
-
-const MOCK_DECLARATIONS: DeclarationInfo[] = [
-  {
-    type: 'mrp',
-    label: 'Maximum Retail Price (MRP)',
-    value: '₹50.00',
-    confidence: 96,
-    rawText: 'MRP ₹50.00',
-  },
-  {
-    type: 'net_quantity',
-    label: 'Net Quantity',
-    value: '500 g',
-    confidence: 94,
-    rawText: 'Net Qty 500 g',
-  },
-  {
-    type: 'manufacturer',
-    label: 'Manufacturer',
-    value: 'ABC Foods Pvt. Ltd.',
-    confidence: 91,
-    rawText: 'Manufactured by ABC Foods Pvt. Ltd.',
-  },
-  {
-    type: 'batch_number',
-    label: 'Batch Number',
-    value: 'BN-2026-08-A',
-    confidence: 88,
-    rawText: 'Batch No. BN-2026-08-A',
-  },
-  {
-    type: 'best_before',
-    label: 'Best Before',
-    value: '31 Mar 2027',
-    confidence: 93,
-    rawText: 'Best Before 31 Mar 2027',
-  },
-  {
-    type: 'marketed_by',
-    label: 'Marketed By',
-    value: 'ABC Foods Pvt. Ltd., Mumbai',
-    confidence: 85,
-    rawText: 'Marketed By: ABC Foods Pvt. Ltd., Mumbai',
-  },
-  {
-    type: 'country',
-    label: 'Country of Origin',
-    value: 'India',
-    confidence: 97,
-    rawText: 'Country of Origin: India',
-  },
-  {
-    type: 'ingredients',
-    label: 'Ingredients / Composition',
-    value: 'Wheat Flour, Sugar, Palm Oil, Salt, Baking Soda',
-    confidence: 82,
-    rawText: 'Ingredients: Wheat Flour, Sugar, Palm Oil...',
-  },
-];
-
-const MOCK_DETECTED_TEXTS: DetectedText[] = [
-  { text: 'ABC Biscuits Premium Pack', confidence: 98, region: { x: 15, y: 8, width: 70, height: 12 } },
-  { text: 'Net Qty 500 g', confidence: 94, region: { x: 10, y: 25, width: 30, height: 6 } },
-  { text: 'MRP ₹50.00', confidence: 96, region: { x: 60, y: 25, width: 25, height: 6 } },
-  { text: 'ABC Foods Pvt. Ltd.', confidence: 91, region: { x: 10, y: 38, width: 45, height: 6 } },
-  { text: 'BN-2026-08-A', confidence: 88, region: { x: 60, y: 38, width: 25, height: 5 } },
-  { text: 'Best Before 31 Mar 2027', confidence: 93, region: { x: 10, y: 50, width: 35, height: 5 } },
-  { text: 'Country of Origin: India', confidence: 97, region: { x: 10, y: 62, width: 35, height: 5 } },
-  { text: 'Marketed By: ABC Foods Pvt. Ltd., Mumbai', confidence: 85, region: { x: 10, y: 70, width: 55, height: 5 } },
-  { text: 'FSSAI License No. 11234567890123', confidence: 89, region: { x: 10, y: 80, width: 50, height: 5 } },
-  { text: 'Toll Free: 1800-123-4567', confidence: 87, region: { x: 60, y: 80, width: 30, height: 4 } },
-  { text: '₹', confidence: 99, region: { x: 60, y: 25, width: 5, height: 6 } },
-  { text: '500 g', confidence: 95, region: { x: 30, y: 25, width: 15, height: 6 } },
-];
-
-const MOCK_REGION_HIGHLIGHTS = [
-  { x: 15, y: 8, width: 70, height: 12, label: 'Product Name' },
-  { x: 10, y: 25, width: 30, height: 6, label: 'Net Quantity' },
-  { x: 60, y: 25, width: 25, height: 6, label: 'MRP' },
-  { x: 10, y: 38, width: 45, height: 6, label: 'Manufacturer' },
-  { x: 60, y: 38, width: 25, height: 5, label: 'Batch No.' },
-  { x: 10, y: 50, width: 35, height: 5, label: 'Best Before' },
-];
-
-/* ---- Core analysis function ---- */
+/**
+ * Convert a data URL (e.g. "data:image/jpeg;base64,...") to a File object.
+ */
+const dataUrlToFile = (dataUrl: string, filename: string): File => {
+  const arr = dataUrl.split(',');
+  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) u8arr[n] = bstr.charCodeAt(n);
+  return new File([u8arr], filename, { type: mime });
+};
 
 /**
- * Simulate a multi-stage analysis pipeline with progress callbacks.
- * Each stage completes after a configurable delay.
- * Results are deterministic mocks based on input data.
+ * Map raw backend field names → frontend declaration types.
+ */
+const FIELD_TYPE_MAP: Record<string, DeclarationInfo['type']> = {
+  mrp: 'mrp',
+  net_quantity: 'net_quantity',
+  product_name: 'product_name',
+  manufacturer: 'manufacturer',
+  packer: 'packer',
+  importer: 'importer',
+  consumer_care: 'consumer_care',
+  country_of_origin: 'country',
+  address: 'other',
+  manufacturing_date: 'mfg_date',
+  expiry_date: 'exp_date',
+  batch_number: 'batch_number',
+  barcode: 'barcode',
+  fssai_license: 'fssai_license',
+  generic_name: 'product_name',
+};
+
+const FIELD_LABEL_MAP: Record<string, string> = {
+  mrp: 'Maximum Retail Price (MRP)',
+  net_quantity: 'Net Quantity',
+  product_name: 'Product Name',
+  manufacturer: 'Manufacturer',
+  packer: 'Packer',
+  importer: 'Importer',
+  consumer_care: 'Consumer Care',
+  country_of_origin: 'Country of Origin',
+  address: 'Address',
+  manufacturing_date: 'Manufacturing Date',
+  expiry_date: 'Expiry Date',
+  batch_number: 'Batch Number',
+  barcode: 'Barcode',
+  fssai_license: 'FSSAI License',
+  generic_name: 'Generic Name',
+};
+
+/**
+ * Convert the real AIScanResponse into the legacy MockOCRResult shape
+ * so the existing ExtractedInformation UI can render it.
+ */
+const mapApiToOCRResult = (api: AIScanResponse): MockOCRResult => {
+  // 1. Build declarations list from field_evidences
+  const declarations: DeclarationInfo[] = (api.field_evidences || []).map((f) => {
+    const ftype = f.field;
+    const value = f.value !== null && f.value !== undefined ? String(f.value) : '';
+    return {
+      type: FIELD_TYPE_MAP[ftype] ?? 'other',
+      label: FIELD_LABEL_MAP[ftype] ?? ftype.replace(/_/g, ' '),
+      value,
+      confidence: Math.round((f.confidence || 0) * 100),
+      rawText: f.source_text || value,
+    };
+  });
+
+  // 2. Build detected texts list from ocr_text or raw_text
+  const detectedTexts: DetectedText[] = (api.ocr_text || []).map((t) => ({
+    text: t.text,
+    confidence: Math.round((t.confidence || 0) * 100),
+    region: {
+      x: t.bbox?.[0] || 0,
+      y: t.bbox?.[1] || 0,
+      width: t.bbox?.[2] || 100,
+      height: t.bbox?.[3] || 20,
+    },
+  }));
+
+  // If no ocr_text items, fall back to splitting raw_text
+  if (detectedTexts.length === 0 && api.raw_text) {
+    const parts = api.raw_text.split(/[|\n]/).filter((s) => s.trim());
+    parts.forEach((p) => {
+      detectedTexts.push({
+        text: p.trim(),
+        confidence: 90,
+        region: { x: 0, y: 0, width: 100, height: 20 },
+      });
+    });
+  }
+
+  // 3. Extract product name and category
+  const productNameField = declarations.find((d) => d.type === 'product_name');
+  const productName = productNameField?.value || api.extracted_declarations?.productName as string || 'Unknown Product';
+  const category = 'Packaged Food';
+
+  // 4. Quality warning
+  const qualityWarning = api.image_quality?.usable === false
+    ? api.warnings?.[0] || 'Image quality may affect text extraction accuracy. Review flagged declarations before finalising.'
+    : null;
+
+  // 5. Region highlights — from field_evidences with bbox
+  const regionHighlights: MockOCRResult['regionHighlights'] = (api.field_evidences || [])
+    .filter((f) => f.bbox && Array.isArray(f.bbox) && f.bbox.length >= 4)
+    .map((f) => ({
+      x: f.bbox![0],
+      y: f.bbox![1],
+      width: f.bbox![2],
+      height: f.bbox![3],
+      label: FIELD_LABEL_MAP[f.field] || f.field,
+    }));
+
+  // 6. Confidence numbers
+  const overallConfidence = Math.round((api.rule_engine_screening?.confidence || 0) * 100);
+  const declarationDetectionConfidence = declarations.length > 0
+    ? Math.round(declarations.reduce((sum, d) => sum + d.confidence, 0) / declarations.length)
+    : 0;
+  const textDetectionConfidence = detectedTexts.length > 0
+    ? Math.round(detectedTexts.reduce((sum, t) => sum + t.confidence, 0) / detectedTexts.length)
+    : 0;
+
+  return {
+    success: true,
+    detectedTexts,
+    declarations,
+    productName,
+    category,
+    overallConfidence: overallConfidence || declarationDetectionConfidence,
+    textDetectionConfidence,
+    ocrConfidence: textDetectionConfidence,
+    declarationDetectionConfidence,
+    qualityWarning,
+    regionHighlights,
+  };
+};
+
+/* ---- Core analysis function (now real) ---- */
+
+/**
+ * Run the real AI pipeline on the uploaded images.
+ * - Stages are simulated to keep the visual progress UX (real AI runs as one call).
+ * - The actual call to /api/v1/ai/scan happens at the OCR stage.
  */
 export const analyzePackageImages = (
   images: Array<{ imageData: string; id: string; type: string }>,
   inspectionId: string,
   onProgress: (stageIndex: number, stages: StageProgress[]) => void
 ): Promise<AnalysisResult> => {
-  return new Promise((resolve) => {
-    const stages = ANALYSIS_STAGES.map(s => ({ ...s }));
+  return new Promise(async (resolve) => {
+    const stages = ANALYSIS_STAGES.map((s) => ({ ...s }));
     const totalImages = images.length;
 
-    // Quality check: if any image quality overall is 'review_required', flag it
-    const hasQualityWarning = images.length > 0;
+    if (!images || images.length === 0) {
+      resolve({
+        success: false,
+        errorMessage: 'No images were provided for analysis. Please return to the previous step and capture or upload package images.',
+        ocrResult: null,
+        summary: null,
+        inspectionId,
+      });
+      return;
+    }
 
     let currentIndex = 0;
+    let apiResult: AIScanResponse | null = null;
+    let errorMessage: string | null = null;
 
-    const processNextStage = () => {
+    const processNextStage = async () => {
       if (currentIndex >= stages.length) {
-        // All stages complete — build final result
-        const result = buildMockResult(totalImages, hasQualityWarning, inspectionId);
-        resolve(result);
+        // All stages complete — build final result from real API response
+        if (apiResult) {
+          const ocrResult = mapApiToOCRResult(apiResult);
+          const summary: AnalysisSummary = {
+            imagesProcessed: totalImages,
+            textRegionsDetected: ocrResult.detectedTexts.length,
+            declarationsDetected: ocrResult.declarations.length,
+            potentialReviewItems: ocrResult.declarations.filter(
+              (d) => d.confidence < 70 || !d.value
+            ).length,
+          };
+          resolve({
+            success: true,
+            errorMessage: null,
+            ocrResult,
+            summary,
+            inspectionId,
+          });
+        } else {
+          resolve({
+            success: false,
+            errorMessage: errorMessage || 'Image analysis failed.',
+            ocrResult: null,
+            summary: null,
+            inspectionId,
+          });
+        }
         return;
       }
 
       const stage = stages[currentIndex];
-
-      // Mark as processing
       stages[currentIndex] = { ...stage, status: 'processing' };
       onProgress(currentIndex, [...stages]);
 
-      // Advance after duration
-      setTimeout(() => {
-        // Mark as completed (or warning if quality check on poor-quality image)
-        let finalStatus: StageStatus = 'completed';
-        if (stage.stage === 'quality_check' && hasQualityWarning) {
-          finalStatus = 'warning';
+      // At the OCR stage (index 5), make the real API call
+      if (stage.stage === 'ocr') {
+        try {
+          // Use the first image (most common case)
+          const file = dataUrlToFile(images[0].imageData, 'package.jpg');
+          const response = await fetch('/api/v1/ai/scan', {
+            method: 'POST',
+            body: (() => {
+              const fd = new FormData();
+              fd.append('file', file);
+              fd.append('image', file);
+              return fd;
+            })(),
+          });
+          if (!response.ok) {
+            const err = await response.json().catch(() => ({ detail: 'AI scan failed' }));
+            throw new Error(err.detail || `HTTP ${response.status}`);
+          }
+          apiResult = await response.json();
+        } catch (e: any) {
+          errorMessage = e?.message || 'AI scan failed. Is the backend running on port 8000?';
+          stages[currentIndex] = { ...stage, status: 'error' };
+          onProgress(currentIndex, [...stages]);
+          // Skip remaining stages
+          currentIndex = stages.length;
+          processNextStage();
+          return;
         }
+      }
 
-        stages[currentIndex] = { ...stage, status: finalStatus };
+      // Wait the stage duration, then mark complete
+      setTimeout(() => {
+        // Quality check stage: warn if API says image is poor
+        if (stage.stage === 'quality_check' && apiResult && !apiResult.image_quality?.usable) {
+          stages[currentIndex] = { ...stage, status: 'warning' };
+        } else {
+          stages[currentIndex] = { ...stage, status: 'completed' };
+        }
         onProgress(currentIndex, [...stages]);
-
         currentIndex++;
         processNextStage();
       }, STAGE_DURATIONS[stage.stage]);
@@ -246,67 +370,14 @@ export const analyzePackageImages = (
   });
 };
 
-const buildMockResult = (
-  totalImages: number,
-  hasQualityWarning: boolean,
-  inspectionId: string
-): AnalysisResult => {
-  // Randomly decide if analysis succeeds (90% success)
-  const success = Math.random() > 0.1;
-
-  if (!success) {
-    return {
-      success: false,
-      errorMessage: 'Image analysis could not be completed. Please try again or review the images.',
-      ocrResult: null,
-      summary: null,
-      inspectionId,
-    };
-  }
-
-  // Build mock OCR result
-  const qualityWarning = hasQualityWarning
-    ? 'Image quality may affect text extraction accuracy. Review flagged declarations before finalising.'
-    : null;
-
-  const ocrResult: MockOCRResult = {
-    success: true,
-    detectedTexts: MOCK_DETECTED_TEXTS,
-    declarations: MOCK_DECLARATIONS,
-    productName: 'ABC Biscuits Premium Pack',
-    category: 'Packaged Food',
-    overallConfidence: 92,
-    textDetectionConfidence: 96,
-    ocrConfidence: 94,
-    declarationDetectionConfidence: 91,
-    qualityWarning,
-    regionHighlights: MOCK_REGION_HIGHLIGHTS,
-  };
-
-  const summary: AnalysisSummary = {
-    imagesProcessed: totalImages || 3,
-    textRegionsDetected: MOCK_DETECTED_TEXTS.length,
-    declarationsDetected: MOCK_DECLARATIONS.length,
-    potentialReviewItems: hasQualityWarning ? 2 : 1,
-  };
-
-  return {
-    success: true,
-    errorMessage: null,
-    ocrResult,
-    summary,
-    inspectionId,
-  };
-};
-
-/* ---- Error simulation helper (for testing error state) ---- */
+/* ---- Error simulation helper ---- */
 export const simulateAnalysisError = (
   _images: unknown[],
   inspectionId: string,
   onProgress: (stageIndex: number, stages: StageProgress[]) => void
 ): Promise<AnalysisResult> => {
   return new Promise((resolve) => {
-    const stages = ANALYSIS_STAGES.map(s => ({ ...s }));
+    const stages = ANALYSIS_STAGES.map((s) => ({ ...s }));
 
     let currentIndex = 0;
 
