@@ -51,16 +51,6 @@ function formatFieldName(name: string): string {
 }
 
 // -----------------------------------------------------------------------
-// Get field metadata (required, rule reference)
-// -----------------------------------------------------------------------
-function getFieldMeta(fieldName: string) {
-  // Try both snake_case and camelCase
-  const snakeField = fieldName.replace(/([A-Z])/g, '_$1').toLowerCase();
-  const meta = MANDATORY_DECLARATIONS.find(d => d.field === fieldName || d.field === snakeField);
-  return meta || { label: formatFieldName(fieldName), required: false, rule: '' };
-}
-
-// -----------------------------------------------------------------------
 // Image Quality Defects Panel
 // -----------------------------------------------------------------------
 function ImageQualityPanel({ quality }: { quality: AIScanResponse['image_quality'] }) {
@@ -212,19 +202,225 @@ export const ScanPage: React.FC = () => {
   const { setInspectionData } = useInspectionStore();
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [apiResult, setApiResult] = useState<AIScanResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showAutoFillNotice, setShowAutoFillNotice] = useState(false);
+  const [showAutoFillPreview, setShowAutoFillPreview] = useState(false);
+  const [previewFormData, setPreviewFormData] = useState<{
+    productName: string;
+    productCategory: string;
+    manufacturer: string;
+    retailer: string;
+    location: string;
+    packageType: string;
+    barcode: string;
+  } | null>(null);
 
   const recentScans = mockScanResults;
 
   // -----------------------------------------------------------------------
+  // Comprehensive product categories
+  // -----------------------------------------------------------------------
+  const PRODUCT_CATEGORIES = {
+    PACKAGED_FOOD: 'Packaged Food',
+    BEVERAGE: 'Beverage',
+    PERSONAL_CARE: 'Personal Care',
+    PHARMACEUTICAL: 'Pharmaceutical',
+    HOUSEHOLD: 'Household Product',
+    AGRICULTURAL: 'Agricultural Input',
+    ELECTRONIC: 'Electronic Goods',
+    TEXTILE: 'Textile',
+    TOBACCO: 'Tobacco Product',
+    OTHER: 'Other',
+  } as const;
+
+  // -----------------------------------------------------------------------
+  // Detect product category from product name and other clues
+  // -----------------------------------------------------------------------
+  const detectProductCategory = (productName: string, extracted: Record<string, string | number | null>): string => {
+    const text = `${productName} ${extracted.fssaiLicense || ''} ${extracted.genericName || ''}`.toLowerCase();
+
+    // Food categories - most common first
+    if (text.match(/biscuit|biscuits|cake|cakes|chocolate|candies|snack|snacks|food|namkeen|chips|gummies|cookies|munchies|pasta|noodles|ready.to.eat|spice|oil|ghee|rice|wheat|flour/i)) {
+      return PRODUCT_CATEGORIES.PACKAGED_FOOD;
+    }
+    if (text.match(/water|bottled|mineral|juice|drink|drinks|soda|beverage|beverages|tea|coffee|soft.drink|energy.drink|milk|lassi/i)) {
+      return PRODUCT_CATEGORIES.BEVERAGE;
+    }
+
+    // Personal care
+    if (text.match(/shampoo|soap|detergent|hair.oil|toothpaste|face.cream|lotion|moisturizer|cosmetics|deodorant|perfume|razor|sanitary/i)) {
+      return PRODUCT_CATEGORIES.PERSONAL_CARE;
+    }
+
+    // Pharmaceutical
+    if (text.match(/tablet|capsule|syrup|medicine|pharma|pharmaceutical|drug|tablet|ointment|vitamin|ayurvedic|herbal/i)) {
+      return PRODUCT_CATEGORIES.PHARMACEUTICAL;
+    }
+
+    // Household
+    if (text.match(/detergent|cleaner|disinfectant|bleach|insecticide|household|home.care|polish|air.freshener/i)) {
+      return PRODUCT_CATEGORIES.HOUSEHOLD;
+    }
+
+    // Agricultural
+    if (text.match(/fertilizer|seeds|pesticide|herbicide|agricultural|agri| crop/i)) {
+      return PRODUCT_CATEGORIES.AGRICULTURAL;
+    }
+
+    // Electronic
+    if (text.match(/electronic|gadget|device|accessory|cable|charger|adapter/i)) {
+      return PRODUCT_CATEGORIES.ELECTRONIC;
+    }
+
+    // Textile
+    if (text.match(/cloth|apparel|garment|textile|fabric|footwear|shoes/i)) {
+      return PRODUCT_CATEGORIES.TEXTILE;
+    }
+
+    // Tobacco
+    if (text.match(/cigarette|tobacco|gutka|pan.masala|bidi|smoking/i)) {
+      return PRODUCT_CATEGORIES.TOBACCO;
+    }
+
+    // Check for FSSAI license (indicates food product)
+    if (extracted.fssaiLicense || extracted.fssai_license || extracted.fssaiLicenseNo) {
+      return PRODUCT_CATEGORIES.PACKAGED_FOOD;
+    }
+
+    // Default
+    return PRODUCT_CATEGORIES.OTHER;
+  };
+
+  // -----------------------------------------------------------------------
+  // Comprehensive package type detection
+  // -----------------------------------------------------------------------
+  const PACKAGE_TYPES = {
+    POUCH: 'Pouch',
+    BOTTLE: 'Bottle',
+    BOX_CARTON: 'Box / Carton',
+    JAR: 'Jar',
+    CAN: 'Can',
+    SACHET: 'Sachet',
+    BLISTER_PACK: 'Blister Pack',
+    TUB: 'Tub',
+    TUBE: 'Tube',
+    WRAPPER: 'Wrapper',
+    BAG: 'Bag',
+    TRAY: 'Tray',
+    PALLET: 'Pallet',
+    OTHER: 'Other',
+  } as const;
+
+  const detectPackageType = (text: string): string => {
+    const lowerText = text.toLowerCase();
+
+    // Pouch types
+    if (lowerText.match(/pouch|pouches|stand.up.pouch|retort.pouch|spout.pouch/i)) {
+      return PACKAGE_TYPES.POUCH;
+    }
+    // Bottle types
+    if (lowerText.match(/bottle|bottles|pet.bottle|glass.bottle|plastic.bottle|ampoule/i)) {
+      return PACKAGE_TYPES.BOTTLE;
+    }
+    // Box/Carton types
+    if (lowerText.match(/box|boxes|carton|tetra.pack|tetra pak|cardboard|corrugated/i)) {
+      return PACKAGE_TYPES.BOX_CARTON;
+    }
+    // Jar types
+    if (lowerText.match(/jar|jars|container|glass.jar/i)) {
+      return PACKAGE_TYPES.JAR;
+    }
+    // Can types
+    if (lowerText.match(/can|cans|tin|aerosol/i)) {
+      return PACKAGE_TYPES.CAN;
+    }
+    // Sachet types
+    if (lowerText.match(/sachet|sachets|unit.pouch|single.serve/i)) {
+      return PACKAGE_TYPES.SACHET;
+    }
+    // Blister pack (tablets, capsules)
+    if (lowerText.match(/blister|blister.pack|strip|aluminium.strip/i)) {
+      return PACKAGE_TYPES.BLISTER_PACK;
+    }
+    // Tub types
+    if (lowerText.match(/tub|tubs|pot|bucket/i)) {
+      return PACKAGE_TYPES.TUB;
+    }
+    // Tube types
+    if (lowerText.match(/tube|tubes|collapsible.tube/i)) {
+      return PACKAGE_TYPES.TUBE;
+    }
+    // Wrapper types
+    if (lowerText.match(/wrapper|wrappers|foil.wrap|film|laminate/i)) {
+      return PACKAGE_TYPES.WRAPPER;
+    }
+    // Bag types
+    if (lowerText.match(/bag|bags|paper.bag|poly.bag|carry.bag/i)) {
+      return PACKAGE_TYPES.BAG;
+    }
+    // Tray types
+    if (lowerText.match(/tray|trays|blister.tray|foam.tray/i)) {
+      return PACKAGE_TYPES.TRAY;
+    }
+    // Pallet types
+    if (lowerText.match(/pallet|pallets|wooden.pallet/i)) {
+      return PACKAGE_TYPES.PALLET;
+    }
+
+    return PACKAGE_TYPES.OTHER;
+  };
+
+  // -----------------------------------------------------------------------
+  // Extract retailer/market information
+  // -----------------------------------------------------------------------
+  const extractRetailer = (text: string, extracted: Record<string, string | number | null>): string => {
+    // Retailer is rarely on product label - mark for manual entry
+    // Common retail chain patterns if present
+    const lowerText = text.toLowerCase();
+
+    // These are typically printed by retailers themselves (not manufacturers)
+    // So we return empty and let user fill manually
+    if (lowerText.match(/imported.by|marketed.by|distributed.by|sold.by/i)) {
+      return String(extracted.importedBy || extracted.marketedBy || extracted.distributedBy || '') || '';
+    }
+
+    return '';
+  };
+
+  // -----------------------------------------------------------------------
+  // Extract location from address and other fields
+  // -----------------------------------------------------------------------
+  const extractLocation = (extracted: Record<string, string | number | null>): string => {
+    // Try various location-related fields
+    const locationFields = [
+      'address', 'ADDRESS', 'city', 'City', 'STATE', 'state', 'country', 'Country',
+      'pincode', 'Pincode', 'zipcode', 'Zipcode', 'postalCode', 'location',
+      'manufacturersAddress', 'factoryAddress', 'registeredOffice'
+    ];
+
+    const parts: string[] = [];
+    for (const field of locationFields) {
+      const value = extracted[field];
+      if (value && String(value).trim()) {
+        parts.push(String(value).trim());
+      }
+    }
+
+    // Extract country of origin if available
+    const countryOfOrigin = extracted.countryOfOrigin || extracted.country_of_origin || extracted.COUNTRY_OF_ORIGIN;
+    if (countryOfOrigin && String(countryOfOrigin).trim()) {
+      parts.push(`Country: ${String(countryOfOrigin).trim()}`);
+    }
+
+    return parts.join(', ') || '';
+  };
+
+  // -----------------------------------------------------------------------
   // Map extracted declarations to inspection form fields
   // -----------------------------------------------------------------------
-  const mapExtractedToForm = (extracted: Record<string, string | number | null>): {
+  const mapExtractedToForm = (extracted: Record<string, string | number | null>, rawText: string = ''): {
     productName: string;
     productCategory: string;
     manufacturer: string;
@@ -233,85 +429,52 @@ export const ScanPage: React.FC = () => {
     packageType: string;
     barcode: string;
   } => {
+    // Extract product name - try multiple field names
     const productName = (extracted.productName as string) ||
-                       (extracted.product_name as string) || '';
+                       (extracted.product_name as string) ||
+                       (extracted.PRODUCT_NAME as string) || '';
 
-    // Detect category based on keywords
-    let productCategory = '';
-    const lowerName = productName.toLowerCase();
-    if (lowerName.match(/biscuit|cake|chocolate|candy|snack|food|namkeen|chips/i)) {
-      productCategory = 'Packaged Food';
-    } else if (lowerName.match(/water|juice|drink|soda|beverage|tea|coffee/i)) {
-      productCategory = 'Beverage';
-    } else if (lowerName.match(/tablet|capsule|syrup|medicine|pharma/i)) {
-      productCategory = 'Pharmaceutical';
-    } else if (lowerName.match(/cream|lotion|shampoo|soap|cosmetics/i)) {
-      productCategory = 'Cosmetics';
-    } else if (lowerName.match(/detergent|cleaner|soap|household/i)) {
-      productCategory = 'Household Product';
-    }
+    // Combine all text for detection purposes
+    const allText = `${productName} ${rawText} ${extracted.address || ''}`.toLowerCase();
+
+    // Detect product category
+    const productCategory = detectProductCategory(productName, extracted);
 
     // Detect package type
-    let packageType = '';
-    if (lowerName.match(/pouch|sachet/i)) {
-      packageType = 'Pouch';
-    } else if (lowerName.match(/bottle/i)) {
-      packageType = 'Bottle';
-    } else if (lowerName.match(/box|carton/i)) {
-      packageType = 'Box / Carton';
-    } else if (lowerName.match(/jar/i)) {
-      packageType = 'Jar';
-    } else if (lowerName.match(/can/i)) {
-      packageType = 'Can';
-    }
+    const packageType = detectPackageType(allText);
+
+    // Extract manufacturer/packer/importer
+    const manufacturer = (extracted.manufacturer as string) ||
+                        (extracted.manufacturer_details as string) ||
+                        (extracted.MANUFACTURER_DETAILS as string) ||
+                        (extracted.packer as string) ||
+                        (extracted.packer_details as string) ||
+                        (extracted.packer_details as string) ||
+                        (extracted.importer as string) || '';
+
+    // Extract barcode - try multiple field names
+    const barcode = (extracted.barcode as string) ||
+                   (extracted.BARCODE as string) ||
+                   (extracted.barcodeValue as string) ||
+                   (extracted.gtin as string) ||
+                   (extracted.ean as string) ||
+                   (extracted.upc as string) || '';
+
+    // Extract retailer info
+    const retailer = extractRetailer(rawText, extracted);
+
+    // Extract location
+    const location = extractLocation(extracted);
 
     return {
       productName,
       productCategory,
-      manufacturer: (extracted.manufacturer as string) ||
-                    (extracted.packer as string) ||
-                    (extracted.importer as string) || '',
-      retailer: '',
-      location: '',
+      manufacturer,
+      retailer, // Empty if not found, user can fill manually
+      location,
       packageType,
-      barcode: (extracted.barcode as string) || '',
+      barcode,
     };
-  };
-
-  // -----------------------------------------------------------------------
-  // Auto-fill Inspection Details from scan result
-  // -----------------------------------------------------------------------
-  const handleAutoFillInspection = () => {
-    if (!apiResult || !user) return;
-
-    const employee = user as Employee;
-    const inspectionId = generateInspectionId();
-    const extracted = apiResult.extracted_declarations;
-    const formData = mapExtractedToForm(extracted);
-
-    const packageImage: PackageImage = {
-      id: `img-${Date.now()}`,
-      imageData: scanResult?.imageUrl || '',
-      type: 'label',
-      capturedAt: new Date().toISOString(),
-      quality: {
-        overall: apiResult.image_quality.usable ? 'good' : 'warning',
-        lighting: 'good',
-        blur: 'good',
-        visibility: apiResult.package_detection.detected ? 'good' : 'warning',
-      },
-    };
-
-    setInspectionData({
-      inspectionId,
-      officerId: employee.id || 'emp-001',
-      officerName: employee.name || 'Officer',
-      office: employee.office || 'Regional Metrology Office',
-      images: [packageImage],
-      form: formData,
-    });
-
-    navigate('/employee/inspection/new');
   };
 
   // -----------------------------------------------------------------------
@@ -348,6 +511,53 @@ export const ScanPage: React.FC = () => {
     });
 
     navigate('/employee/inspection/analysis');
+  };
+
+  // -----------------------------------------------------------------------
+  // Show AutoFill Preview - displays what will be auto-filled
+  // -----------------------------------------------------------------------
+  const handleShowAutoFillPreview = () => {
+    if (!apiResult) return;
+
+    const extracted = apiResult.extracted_declarations;
+    const formData = mapExtractedToForm(extracted, apiResult.raw_text);
+    setPreviewFormData(formData);
+    setShowAutoFillPreview(true);
+  };
+
+  // -----------------------------------------------------------------------
+  // Confirm AutoFill and proceed to inspection form
+  // -----------------------------------------------------------------------
+  const handleConfirmAutoFill = () => {
+    if (!apiResult || !user || !previewFormData) return;
+
+    const employee = user as Employee;
+    const inspectionId = generateInspectionId();
+
+    const packageImage: PackageImage = {
+      id: `img-${Date.now()}`,
+      imageData: scanResult?.imageUrl || '',
+      type: 'label',
+      capturedAt: new Date().toISOString(),
+      quality: {
+        overall: apiResult.image_quality.usable ? 'good' : 'warning',
+        lighting: 'good',
+        blur: 'good',
+        visibility: apiResult.package_detection.detected ? 'good' : 'warning',
+      },
+    };
+
+    setInspectionData({
+      inspectionId,
+      officerId: employee.id || 'emp-001',
+      officerName: employee.name || 'Officer',
+      office: employee.office || 'Regional Metrology Office',
+      images: [packageImage],
+      form: previewFormData,
+    });
+
+    setShowAutoFillPreview(false);
+    navigate('/employee/inspection/new');
   };
 
   // -----------------------------------------------------------------------
@@ -420,13 +630,13 @@ export const ScanPage: React.FC = () => {
   // handleReset
   // -----------------------------------------------------------------------
   const handleReset = () => {
-    setSelectedImage(null);
     setScanResult(null);
     setApiResult(null);
     setShowUpload(false);
     setIsCameraOpen(false);
     setError(null);
-    setShowAutoFillNotice(false);
+    setShowAutoFillPreview(false);
+    setPreviewFormData(null);
   };
 
   // -----------------------------------------------------------------------
@@ -598,8 +808,8 @@ export const ScanPage: React.FC = () => {
 
             {/* Action Buttons */}
             <div className="scan__results-actions">
-              <Button variant="primary" size="lg" fullWidth={true} onClick={handleAutoFillInspection}>
-                ✨ Auto-Fill Inspection Details
+              <Button variant="primary" size="lg" fullWidth={true} onClick={handleShowAutoFillPreview}>
+                ✨ Preview Auto-Fill Details
               </Button>
               <Button variant="secondary" size="lg" fullWidth={true} onClick={handleSkipToAnalysis}>
                 🚀 Skip to Analysis
@@ -621,6 +831,90 @@ export const ScanPage: React.FC = () => {
 
           </CardBody>
         </Card>
+      )}
+
+      {/* AutoFill Preview Modal */}
+      {showAutoFillPreview && previewFormData && (
+        <div className="scan__modal-backdrop" onClick={() => setShowAutoFillPreview(false)}>
+          <div className="scan__modal scan__autofill-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="scan__modal-header">
+              <h2 className="scan__modal-title">✨ Auto-Fill Preview</h2>
+              <button className="scan__modal-close" onClick={() => setShowAutoFillPreview(false)} aria-label="Close">✕</button>
+            </div>
+            <div className="scan__modal-body">
+              <p className="scan__autofill-description">
+                The following fields will be auto-filled based on the scanned package label. You can edit them after proceeding.
+              </p>
+
+              <div className="scan__autofill-grid">
+                {/* Product Name */}
+                <div className="scan__autofill-item">
+                  <div className="scan__autofill-label">Product Name</div>
+                  <div className="scan__autofill-value">
+                    {previewFormData.productName || <span className="scan__autofill-empty">Not detected</span>}
+                  </div>
+                </div>
+
+                {/* Product Category */}
+                <div className="scan__autofill-item">
+                  <div className="scan__autofill-label">Product Category</div>
+                  <div className="scan__autofill-value">
+                    <Badge variant="primary" size="sm">{previewFormData.productCategory || 'Not detected'}</Badge>
+                  </div>
+                </div>
+
+                {/* Manufacturer */}
+                <div className="scan__autofill-item">
+                  <div className="scan__autofill-label">Manufacturer / Company</div>
+                  <div className="scan__autofill-value">
+                    {previewFormData.manufacturer || <span className="scan__autofill-empty">Not detected</span>}
+                  </div>
+                </div>
+
+                {/* Retailer */}
+                <div className="scan__autofill-item">
+                  <div className="scan__autofill-label">Retailer / Market</div>
+                  <div className="scan__autofill-value">
+                    {previewFormData.retailer || <span className="scan__autofill-manual">Manual entry required</span>}
+                  </div>
+                </div>
+
+                {/* Location */}
+                <div className="scan__autofill-item scan__autofill-item--full">
+                  <div className="scan__autofill-label">Location / Address</div>
+                  <div className="scan__autofill-value">
+                    {previewFormData.location || <span className="scan__autofill-empty">Not detected</span>}
+                  </div>
+                </div>
+
+                {/* Package Type */}
+                <div className="scan__autofill-item">
+                  <div className="scan__autofill-label">Package Type</div>
+                  <div className="scan__autofill-value">
+                    <Badge variant="info" size="sm">{previewFormData.packageType || 'Not detected'}</Badge>
+                  </div>
+                </div>
+
+                {/* Barcode */}
+                <div className="scan__autofill-item">
+                  <div className="scan__autofill-label">Barcode</div>
+                  <div className="scan__autofill-value">
+                    {previewFormData.barcode || <span className="scan__autofill-empty">Not detected</span>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="scan__autofill-actions">
+                <Button variant="primary" size="lg" fullWidth={true} onClick={handleConfirmAutoFill}>
+                  ✅ Confirm & Proceed to Inspection
+                </Button>
+                <Button variant="ghost" size="lg" fullWidth={true} onClick={() => setShowAutoFillPreview(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Recent Scans */}
@@ -1021,6 +1315,72 @@ export const ScanPage: React.FC = () => {
         .scan__history-product { font-weight: 600; color: var(--color-navy-900); font-size: var(--font-size-sm); }
         .scan__history-date { font-size: var(--font-size-xs); color: var(--color-gray-500); margin-top: 2px; }
         .scan__history-info { display: flex; flex-direction: column; }
+
+        /* ── AutoFill Preview Modal ───────────────────────────────── */
+        .scan__autofill-modal {
+          max-width: 700px;
+        }
+        .scan__autofill-description {
+          color: var(--color-gray-600);
+          font-size: var(--font-size-sm);
+          margin-bottom: var(--space-4);
+          padding: var(--space-3);
+          background: var(--color-navy-50);
+          border-radius: var(--radius-md);
+          border-left: 4px solid var(--color-navy-400);
+        }
+        .scan__autofill-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: var(--space-3);
+          margin-bottom: var(--space-4);
+        }
+        .scan__autofill-item {
+          background: var(--color-white);
+          border: 1px solid var(--color-gray-200);
+          border-radius: var(--radius-md);
+          padding: var(--space-3) var(--space-4);
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-1);
+        }
+        .scan__autofill-item--full {
+          grid-column: 1 / -1;
+        }
+        .scan__autofill-label {
+          font-size: var(--font-size-xs);
+          text-transform: uppercase;
+          color: var(--color-gray-500);
+          font-weight: 700;
+          letter-spacing: 0.3px;
+        }
+        .scan__autofill-value {
+          font-size: var(--font-size-sm);
+          font-weight: 600;
+          color: var(--color-navy-900);
+          word-break: break-word;
+        }
+        .scan__autofill-empty {
+          color: var(--color-gray-400);
+          font-style: italic;
+          font-weight: 400;
+        }
+        .scan__autofill-manual {
+          color: #ff9800;
+          font-style: italic;
+          font-size: var(--font-size-xs);
+        }
+        .scan__autofill-actions {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-3);
+          margin-top: var(--space-4);
+          padding-top: var(--space-4);
+          border-top: 1px solid var(--color-gray-200);
+        }
+        @media (max-width: 600px) {
+          .scan__autofill-grid { grid-template-columns: 1fr; }
+        }
       `}</style>
     </div>
   );
