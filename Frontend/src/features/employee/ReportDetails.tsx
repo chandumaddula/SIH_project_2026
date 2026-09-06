@@ -13,10 +13,10 @@
    - Measurements
    - Officer observations
    - Officer verification status
-   - Generate / Preview / Download actions
+   - Generate / Preview / Download actions (PDF & Excel)
 
    IMPORTANT:
-   - This is a frontend DEMO. No real PDF generation.
+   - This is a frontend DEMO with real PDF/Excel generation capability.
    - No real legal certification. Reports are mock documents for review.
    - Final compliance determination is made by the authorized officer
      (see OfficerVerification workflow).
@@ -36,10 +36,11 @@ import {
   addOfficerObservation,
   REPORT_STATUS_CONFIG,
 } from '../../services/report.service';
-import { COMPLIANCE_STATUS_CONFIG, VERIFICATION_STATUS_CONFIG } from '../../services/inspection.service';
+import { COMPLIANCE_STATUS_CONFIG, getInspectionById, VERIFICATION_STATUS_CONFIG } from '../../services/inspection.service';
 import { useUserStore } from '../../store';
+import { ReportDownload } from './ReportDownload';
 
-type ModalMode = 'generate' | 'complete' | 'observation' | null;
+type ModalMode = 'generate' | 'complete' | 'observation' | 'download' | null;
 
 export const ReportDetails: React.FC = () => {
   const navigate = useNavigate();
@@ -72,13 +73,13 @@ export const ReportDetails: React.FC = () => {
   const showMessage = (msg: string) => {
     setActionMessage(msg);
     setActionError(null);
-    setTimeout(() => setActionMessage(null), 3000);
+    setTimeout(() => setActionMessage(null), 4000);
   };
 
   const showError = (msg: string) => {
     setActionError(msg);
     setActionMessage(null);
-    setTimeout(() => setActionError(null), 4000);
+    setTimeout(() => setActionError(null), 5000);
   };
 
   const openModal = (mode: ModalMode) => {
@@ -133,10 +134,6 @@ export const ReportDetails: React.FC = () => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   if (phase === 'loading') {
     return (
       <div className="page rd-page">
@@ -169,6 +166,7 @@ export const ReportDetails: React.FC = () => {
   const statusCfg = REPORT_STATUS_CONFIG[report.status];
   const compCfg = COMPLIANCE_STATUS_CONFIG[report.overallCompliance];
   const verCfg = VERIFICATION_STATUS_CONFIG[report.verificationStatus as keyof typeof VERIFICATION_STATUS_CONFIG];
+  const inspection = report.inspectionId ? getInspectionById(report.inspectionId) : null;
 
   return (
     <div className={`page rd-page ${isPreview ? 'rd-page--preview' : ''}`}>
@@ -191,10 +189,10 @@ export const ReportDetails: React.FC = () => {
                 Mark Complete
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={handlePrint}>
-              Print / Save as PDF
+            <Button variant="primary" size="sm" onClick={() => openModal('download')}>
+              📥 Download Report
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => openModal('observation')}>
+            <Button variant="outline" size="sm" onClick={() => openModal('observation')}>
               + Observation
             </Button>
           </div>
@@ -449,6 +447,20 @@ export const ReportDetails: React.FC = () => {
       </div>
 
       {/* Modals */}
+      {/* Download Modal */}
+      <Modal
+        isOpen={modal === 'download'}
+        onClose={closeModal}
+        title="Download Report"
+        size="md"
+      >
+        <ReportDownload
+          report={report as any}
+          inspection={inspection}
+          onClose={closeModal}
+        />
+      </Modal>
+
       <Modal
         isOpen={modal === 'generate'}
         onClose={closeModal}
@@ -464,11 +476,10 @@ export const ReportDetails: React.FC = () => {
       >
         <div className="rd-form">
           <p>
-            This is a mock generation. The report will be created and associated with
-            inspection <code className="rd-id-inline">{report.inspectionId}</code>.
+            This will generate a new report for inspection <code className="rd-id-inline">{report.inspectionId}</code>.
           </p>
           <p className="rd-form__note">
-            A real PDF is not produced. Use the <strong>Print / Save as PDF</strong> button to save a copy.
+            You can download the report in PDF or Excel format after generation.
           </p>
         </div>
       </Modal>

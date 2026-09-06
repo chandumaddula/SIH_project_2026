@@ -6,7 +6,7 @@ export interface ModalProps {
   title: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   closeOnBackdrop?: boolean;
   closeOnEscape?: boolean;
 }
@@ -123,6 +123,7 @@ export const Modal: React.FC<ModalProps> = ({
         .modal-content--sm { max-width: 400px; }
         .modal-content--md { max-width: 560px; }
         .modal-content--lg { max-width: 800px; }
+        .modal-content--xl { max-width: 700px; }
 
         .modal-header {
           padding: var(--space-5) var(--space-6);
