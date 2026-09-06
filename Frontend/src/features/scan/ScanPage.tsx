@@ -207,6 +207,8 @@ export const ScanPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAutoFillPreview, setShowAutoFillPreview] = useState(false);
+  const [showAutoFillNotice, setShowAutoFillNotice] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [previewFormData, setPreviewFormData] = useState<{
     productName: string;
     productCategory: string;
@@ -637,6 +639,8 @@ export const ScanPage: React.FC = () => {
     setError(null);
     setShowAutoFillPreview(false);
     setPreviewFormData(null);
+    setShowAutoFillNotice(false);
+    setSelectedImage(null);
   };
 
   // -----------------------------------------------------------------------
@@ -959,13 +963,13 @@ export const ScanPage: React.FC = () => {
           gap: var(--space-3);
           padding: var(--space-3) var(--space-4);
           background: #ffebee;
-          border-left: 4px solid #f44336;
+          border-left: 5px solid #f44336;
           border-radius: var(--radius-md);
           margin-bottom: var(--space-4);
-          color: #c62828;
-          font-size: var(--font-size-sm);
+          color: #b71c1c;
+          font-size: 1rem;
         }
-        .scan__error-msg { flex: 1; }
+        .scan__error-msg { flex: 1; font-weight: 500; }
 
         /* ── Loading ──────────────────────────────────────────────── */
         .scan__loading-card {
@@ -979,9 +983,9 @@ export const ScanPage: React.FC = () => {
           padding: var(--space-4);
         }
         .scan__loading-spinner {
-          width: 32px;
-          height: 32px;
-          border: 3px solid var(--color-gray-200);
+          width: 36px;
+          height: 36px;
+          border: 4px solid var(--color-gray-200);
           border-top-color: var(--color-navy-500);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
@@ -989,8 +993,9 @@ export const ScanPage: React.FC = () => {
         @keyframes spin { to { transform: rotate(360deg); } }
         .scan__loading p {
           margin: 0;
-          font-size: var(--font-size-base);
-          color: var(--color-navy-700);
+          font-size: 1.1rem;
+          color: #1a1a1a;
+          font-weight: 500;
         }
 
         /* ── Compliance Banner ────────────────────────────────────── */
@@ -1002,17 +1007,27 @@ export const ScanPage: React.FC = () => {
           border-radius: var(--radius-lg);
           margin-bottom: var(--space-5);
           border-left: 5px solid;
+          font-size: 1.05rem;
         }
         .scan__compliance--no_issue { background: #e8f5e9; border-color: #4caf50; }
         .scan__compliance--review_recommended { background: #fff3e0; border-color: #ff9800; }
         .scan__compliance--potential_violation { background: #ffebee; border-color: #f44336; }
-        .scan__compliance-icon { font-size: 2rem; flex-shrink: 0; line-height: 1; }
+        .scan__compliance-icon { font-size: 2.2rem; flex-shrink: 0; line-height: 1; }
         .scan__compliance-text {
           flex: 1;
           display: flex;
           flex-direction: column;
           gap: var(--space-1);
-          font-size: var(--font-size-sm);
+          font-size: 1rem;
+        }
+        .scan__compliance-text strong {
+          font-size: 1.15rem;
+          color: #1a1a1a;
+        }
+        .scan__compliance-text span {
+          font-size: 1rem;
+          color: #333333;
+          font-weight: 500;
         }
         .scan__compliance-right { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-2); flex-shrink: 0; }
         .scan__compliance-flags { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-1); }
@@ -1039,20 +1054,20 @@ export const ScanPage: React.FC = () => {
           display: flex;
           align-items: center;
           gap: var(--space-3);
-          padding: var(--space-2) var(--space-3);
+          padding: var(--space-3) var(--space-4);
           background: var(--color-gray-50);
           border-radius: var(--radius-md);
-          font-size: var(--font-size-sm);
+          font-size: 1rem;
           flex-wrap: wrap;
         }
         .scan__meta-label {
-          font-size: var(--font-size-xs);
+          font-size: 0.95rem;
           text-transform: uppercase;
-          color: var(--color-gray-500);
+          color: #444444;
           min-width: 100px;
-          font-weight: 600;
+          font-weight: 700;
         }
-        .scan__meta-value { font-weight: 600; color: var(--color-navy-900); }
+        .scan__meta-value { font-weight: 700; color: #111111; font-size: 1rem; }
         .scan__meta-defects { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 
         /* ── Section titles ───────────────────────────────────────── */
@@ -1060,27 +1075,28 @@ export const ScanPage: React.FC = () => {
           display: flex;
           align-items: center;
           gap: var(--space-2);
-          font-size: var(--font-size-base);
-          font-weight: var(--font-weight-semibold);
-          color: var(--color-navy-900);
+          font-size: 1.2rem;
+          font-weight: 700;
+          color: #0a0a0a;
           margin: var(--space-4) 0 var(--space-3);
         }
 
         /* ── Extracted Fields Grid ─────────────────────────────────── */
         .scan__fields-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-          gap: var(--space-3);
+          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+          gap: var(--space-4);
           margin-bottom: var(--space-5);
         }
         .scan__field-card {
           background: var(--color-white);
           border: 1px solid var(--color-gray-200);
           border-radius: var(--radius-md);
-          padding: var(--space-3) var(--space-4);
+          padding: var(--space-4) var(--space-5);
           display: flex;
           flex-direction: column;
           gap: var(--space-2);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         .scan__field-header {
           display: flex;
@@ -1088,34 +1104,34 @@ export const ScanPage: React.FC = () => {
           align-items: center;
         }
         .scan__field-label {
-          font-size: var(--font-size-xs);
+          font-size: 0.9rem;
           text-transform: uppercase;
-          color: var(--color-gray-500);
+          color: #555555;
           font-weight: 700;
           letter-spacing: 0.3px;
         }
         .scan__field-conf {
-          font-size: var(--font-size-xs);
-          color: var(--color-navy-700);
-          font-weight: 600;
+          font-size: 0.95rem;
+          color: #333333;
+          font-weight: 700;
         }
         .scan__field-value {
-          font-size: var(--font-size-base);
+          font-size: 1.1rem;
           font-weight: 600;
-          color: var(--color-navy-900);
+          color: #111111;
           word-break: break-word;
           line-height: 1.4;
         }
-        .scan__field-empty { color: var(--color-gray-400); font-style: italic; font-weight: 400; }
+        .scan__field-empty { color: #777777; font-style: italic; font-weight: 400; }
         .scan__field-bar {
-          height: 4px;
+          height: 6px;
           background: var(--color-gray-200);
-          border-radius: 2px;
+          border-radius: 3px;
           overflow: hidden;
         }
         .scan__field-bar-fill {
           height: 100%;
-          border-radius: 2px;
+          border-radius: 3px;
           transition: width 0.5s ease;
         }
 
@@ -1136,11 +1152,11 @@ export const ScanPage: React.FC = () => {
           display: flex;
           align-items: center;
           gap: var(--space-2);
-          font-size: var(--font-size-sm);
+          font-size: 1rem;
         }
         .scan__defect-desc {
-          color: var(--color-gray-700);
-          font-size: var(--font-size-xs);
+          color: #333333;
+          font-size: 0.95rem;
         }
 
         /* ── Legal Metrology Declarations ───────────────────────── */
@@ -1149,7 +1165,7 @@ export const ScanPage: React.FC = () => {
         }
         .scan__declaration-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
           gap: var(--space-3);
           margin-top: var(--space-3);
         }
@@ -1157,16 +1173,17 @@ export const ScanPage: React.FC = () => {
           background: var(--color-white);
           border: 1px solid var(--color-gray-200);
           border-radius: var(--radius-md);
-          padding: var(--space-3) var(--space-4);
+          padding: var(--space-4) var(--space-5);
           display: flex;
           flex-direction: column;
           gap: var(--space-1);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
         .scan__declaration-item--present {
-          border-left: 4px solid #4caf50;
+          border-left: 5px solid #4caf50;
         }
         .scan__declaration-item--missing {
-          border-left: 4px solid #f44336;
+          border-left: 5px solid #f44336;
           background: #ffebee;
         }
         .scan__declaration-header {
@@ -1175,27 +1192,27 @@ export const ScanPage: React.FC = () => {
           align-items: center;
         }
         .scan__declaration-label {
-          font-size: var(--font-size-xs);
+          font-size: 0.95rem;
           text-transform: uppercase;
-          color: var(--color-gray-500);
+          color: #555555;
           font-weight: 700;
           letter-spacing: 0.3px;
         }
         .scan__declaration-value {
-          font-size: var(--font-size-sm);
+          font-size: 1.05rem;
           font-weight: 600;
-          color: var(--color-navy-900);
+          color: #111111;
           word-break: break-word;
         }
         .scan__declaration-missing {
-          color: var(--color-error-600, #d32f2f);
+          color: #c62828;
           font-style: italic;
         }
         .scan__declaration-rule {
-          font-size: 10px;
-          color: var(--color-gray-500);
+          font-size: 12px;
+          color: #555555;
           background: var(--color-gray-100);
-          padding: 2px 6px;
+          padding: 3px 8px;
           border-radius: 4px;
         }
 
@@ -1212,13 +1229,13 @@ export const ScanPage: React.FC = () => {
           align-items: flex-start;
           gap: var(--space-2);
           margin-top: var(--space-2);
-          font-size: var(--font-size-sm);
-          padding: var(--space-2) var(--space-3);
+          font-size: 1rem;
+          padding: var(--space-3) var(--space-4);
           border-radius: var(--radius-sm);
-          border-left: 3px solid;
+          border-left: 4px solid;
         }
-        .scan__violation-desc { flex: 1; color: var(--color-gray-800); }
-        .scan__violation-rule { font-size: 11px; color: var(--color-gray-500); margin-left: auto; }
+        .scan__violation-desc { flex: 1; color: #222222; }
+        .scan__violation-rule { font-size: 12px; color: #555555; margin-left: auto; }
 
         /* ── Missing ──────────────────────────────────────────────── */
         .scan__missing { margin-bottom: var(--space-4); }
@@ -1226,13 +1243,16 @@ export const ScanPage: React.FC = () => {
 
         /* ── Next step ────────────────────────────────────────────── */
         .scan__next-step {
-          background: var(--color-navy-50);
-          padding: var(--space-3) var(--space-4);
+          background: #e8f0fe;
+          padding: var(--space-4) var(--space-5);
           border-radius: var(--radius-md);
           margin-bottom: var(--space-4);
-          font-size: var(--font-size-sm);
-          color: var(--color-navy-900);
-          border-left: 4px solid var(--color-navy-500);
+          font-size: 1rem;
+          color: #1a1a1a;
+          border-left: 5px solid #1a73e8;
+        }
+        .scan__next-step strong {
+          font-size: 1.1rem;
         }
 
         /* ── Actions ──────────────────────────────────────────────── */
@@ -1283,8 +1303,8 @@ export const ScanPage: React.FC = () => {
           border-bottom: 1px solid var(--color-gray-200);
           background: var(--color-navy-50);
         }
-        .scan__modal-title { font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold); margin: 0; }
-        .scan__modal-close { background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--color-gray-600); padding: var(--space-1); }
+        .scan__modal-title { font-size: 1.3rem; font-weight: 700; margin: 0; color: #111111; }
+        .scan__modal-close { background: none; border: none; cursor: pointer; font-size: 1.4rem; color: #444444; padding: var(--space-1); }
         .scan__modal-body { overflow: auto; flex: 1; }
 
         /* ── Upload ──────────────────────────────────────────────── */
@@ -1295,10 +1315,11 @@ export const ScanPage: React.FC = () => {
           padding: var(--space-6);
           margin-bottom: var(--space-4);
           text-align: center;
+          font-size: 1rem;
         }
         .scan__upload-header { margin-bottom: var(--space-4); }
         .scan__upload-close { background: none; border: none; cursor: pointer; color: var(--color-gray-600); font-size: 1.2rem; }
-        .scan__upload-note { font-size: var(--font-size-xs); color: var(--color-gray-500); margin-top: var(--space-2); }
+        .scan__upload-note { font-size: 0.95rem; color: #555555; margin-top: var(--space-2); }
 
         /* ── History ──────────────────────────────────────────────── */
         .scan__history { margin-top: var(--space-8); }
@@ -1312,22 +1333,23 @@ export const ScanPage: React.FC = () => {
           border: 1px solid var(--color-gray-200);
           border-radius: var(--radius-md);
         }
-        .scan__history-product { font-weight: 600; color: var(--color-navy-900); font-size: var(--font-size-sm); }
-        .scan__history-date { font-size: var(--font-size-xs); color: var(--color-gray-500); margin-top: 2px; }
+        .scan__history-product { font-weight: 600; color: #111111; font-size: 1rem; }
+        .scan__history-date { font-size: 0.9rem; color: #666666; margin-top: 2px; }
         .scan__history-info { display: flex; flex-direction: column; }
 
         /* ── AutoFill Preview Modal ───────────────────────────────── */
         .scan__autofill-modal {
-          max-width: 700px;
+          max-width: 750px;
         }
         .scan__autofill-description {
-          color: var(--color-gray-600);
-          font-size: var(--font-size-sm);
+          color: #333333;
+          font-size: 1rem;
           margin-bottom: var(--space-4);
-          padding: var(--space-3);
-          background: var(--color-navy-50);
+          padding: var(--space-4);
+          background: #e8f0fe;
           border-radius: var(--radius-md);
-          border-left: 4px solid var(--color-navy-400);
+          border-left: 5px solid #1a73e8;
+          line-height: 1.5;
         }
         .scan__autofill-grid {
           display: grid;
@@ -1339,36 +1361,37 @@ export const ScanPage: React.FC = () => {
           background: var(--color-white);
           border: 1px solid var(--color-gray-200);
           border-radius: var(--radius-md);
-          padding: var(--space-3) var(--space-4);
+          padding: var(--space-4) var(--space-5);
           display: flex;
           flex-direction: column;
           gap: var(--space-1);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
         .scan__autofill-item--full {
           grid-column: 1 / -1;
         }
         .scan__autofill-label {
-          font-size: var(--font-size-xs);
+          font-size: 0.9rem;
           text-transform: uppercase;
-          color: var(--color-gray-500);
+          color: #555555;
           font-weight: 700;
           letter-spacing: 0.3px;
         }
         .scan__autofill-value {
-          font-size: var(--font-size-sm);
+          font-size: 1.05rem;
           font-weight: 600;
-          color: var(--color-navy-900);
+          color: #111111;
           word-break: break-word;
         }
         .scan__autofill-empty {
-          color: var(--color-gray-400);
+          color: #888888;
           font-style: italic;
           font-weight: 400;
         }
         .scan__autofill-manual {
-          color: #ff9800;
+          color: #e65100;
           font-style: italic;
-          font-size: var(--font-size-xs);
+          font-size: 0.95rem;
         }
         .scan__autofill-actions {
           display: flex;
@@ -1380,6 +1403,136 @@ export const ScanPage: React.FC = () => {
         }
         @media (max-width: 600px) {
           .scan__autofill-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ── Dark Mode Support ────────────────────────────────────── */
+        @media (prefers-color-scheme: dark) {
+          /* Dark background elements → white/bright text */
+          .scan__modal-backdrop {
+            background: rgba(0,0,0,0.7);
+          }
+
+          /* Cards and white backgrounds → dark text (but flip to light text on dark bg) */
+          .scan__modal,
+          .scan__field-card,
+          .scan__declaration-item,
+          .scan__declaration-item--present,
+          .scan__history-item,
+          .scan__autofill-item {
+            background: #1e1e2e !important;
+            border-color: #333344 !important;
+          }
+
+          /* Text on light/dark cards */
+          .scan__field-label,
+          .scan__declaration-label,
+          .scan__autofill-label {
+            color: #9ca3af !important;
+          }
+
+          .scan__field-value,
+          .scan__declaration-value,
+          .scan__autofill-value,
+          .scan__history-product,
+          .scan__modal-title {
+            color: #f3f4f6 !important;
+          }
+
+          .scan__field-conf,
+          .scan__meta-value {
+            color: #d1d5db !important;
+          }
+
+          .scan__meta-label {
+            color: #9ca3af !important;
+          }
+
+          /* Light background alert boxes → flip text to light */
+          .scan__error,
+          .scan__compliance--no_issue,
+          .scan__compliance--review_recommended,
+          .scan__compliance--potential_violation,
+          .scan__meta-row,
+          .scan__quality-issues,
+          .scan__declaration-item--missing,
+          .scan__violations,
+          .scan__next-step,
+          .scan__autofill-description {
+            background: #2d2d3d !important;
+            color: #e5e7eb !important;
+            border-color: #404050 !important;
+          }
+
+          .scan__error { color: #fca5a5 !important; border-color: #ef4444 !important; }
+          .scan__compliance-text strong { color: #ffffff !important; }
+          .scan__compliance-text span { color: #d1d5db !important; }
+          .scan__defect-desc { color: #d1d5db !important; }
+          .scan__violation-desc { color: #e5e7eb !important; }
+          .scan__next-step strong { color: #ffffff !important; }
+
+          .scan__declaration-missing {
+            color: #fca5a5 !important;
+          }
+
+          .scan__history-date {
+            color: #6b7280 !important;
+          }
+
+          .scan__autofill-manual {
+            color: #fbbf24 !important;
+          }
+
+          /* Modal header */
+          .scan__modal-header {
+            background: #252535 !important;
+            border-color: #333344 !important;
+          }
+
+          /* Upload area */
+          .scan__upload {
+            background: #1e1e2e !important;
+            border-color: #5c6bc0 !important;
+          }
+
+          .scan__upload-note {
+            color: #9ca3af !important;
+          }
+
+          /* Loading */
+          .scan__loading-spinner {
+            border-color: #333344;
+            border-top-color: #5c6bc0;
+          }
+
+          .scan__loading p {
+            color: #e5e7eb !important;
+          }
+
+          /* Section titles */
+          .scan__section-title {
+            color: #f3f4f6 !important;
+          }
+
+          /* Rules badges */
+          .scan__declaration-rule {
+            background: #252535 !important;
+            color: #9ca3af !important;
+          }
+
+          /* Field bar */
+          .scan__field-bar {
+            background: #333344;
+          }
+
+          /* Image border */
+          .scan__results-image-wrap {
+            border-color: #333344 !important;
+          }
+
+          /* Modal close button */
+          .scan__modal-close {
+            color: #d1d5db !important;
+          }
         }
       `}</style>
     </div>

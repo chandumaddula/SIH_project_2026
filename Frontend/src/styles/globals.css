@@ -250,3 +250,70 @@ select:disabled {
     display: none !important;
   }
 }
+
+/* ==========================================================================
+   Dark Mode Styles
+   ========================================================================== */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #121220;
+    color: var(--color-gray-900);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--color-gray-900);
+  }
+
+  p {
+    color: var(--color-gray-700);
+  }
+
+  a {
+    color: var(--color-navy-400);
+  }
+
+  a:hover {
+    color: var(--color-navy-300);
+  }
+
+  input, textarea, select {
+    background-color: var(--color-gray-100);
+    border-color: var(--color-gray-300);
+    color: var(--color-gray-900);
+  }
+
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--color-navy-400);
+    box-shadow: 0 0 0 3px rgba(92, 107, 192, 0.25);
+  }
+
+  input:disabled, textarea:disabled, select:disabled {
+    background-color: var(--color-gray-200);
+  }
+
+  /* Page backgrounds */
+  .page {
+    background-color: #121220;
+  }
+
+  .page-title {
+    color: var(--color-gray-900);
+  }
+
+  .page-subtitle {
+    color: var(--color-gray-600);
+  }
+
+  /* Scrollbar in dark mode */
+  ::-webkit-scrollbar-track {
+    background: var(--color-gray-200);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-gray-500);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-gray-400);
+  }
+}
