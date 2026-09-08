@@ -124,7 +124,6 @@ function ComplianceBanner({ screening }: { screening: AIScanResponse['rule_engin
       <div className="scan__compliance-icon">{icons[resultClass] || '❓'}</div>
       <div className="scan__compliance-text">
         <strong>{screening.compliance_status.replace('_', ' ')}</strong>
-        <span>{screening.explanation}</span>
       </div>
       <div className="scan__compliance-right">
         <Badge variant={variantMap[resultClass] || 'neutral'}>
@@ -208,6 +207,7 @@ export const ScanPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showAutoFillPreview, setShowAutoFillPreview] = useState(false);
   const [showAutoFillNotice, setShowAutoFillNotice] = useState(false);
+  // selectedImage is now used in handleFileChange
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [previewFormData, setPreviewFormData] = useState<{
     productName: string;
@@ -1098,6 +1098,13 @@ export const ScanPage: React.FC = () => {
           gap: var(--space-2);
           box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
+        /* Alternating row colors for detected field cards */
+        .scan__fields-grid > :nth-child(odd) > .scan__field-card {
+          background: var(--color-gray-50);
+        }
+        .scan__fields-grid > :nth-child(even) > .scan__field-card {
+          background: var(--color-white);
+        }
         .scan__field-header {
           display: flex;
           justify-content: space-between;
@@ -1178,6 +1185,13 @@ export const ScanPage: React.FC = () => {
           flex-direction: column;
           gap: var(--space-1);
           box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        /* Alternating row colors for declaration items */
+        .scan__declaration-grid > :nth-child(odd) > .scan__declaration-item {
+          background: var(--color-gray-50);
+        }
+        .scan__declaration-grid > :nth-child(even) > .scan__declaration-item {
+          background: var(--color-white);
         }
         .scan__declaration-item--present {
           border-left: 5px solid #4caf50;
@@ -1332,6 +1346,15 @@ export const ScanPage: React.FC = () => {
           background: var(--color-white);
           border: 1px solid var(--color-gray-200);
           border-radius: var(--radius-md);
+          /* Alternating background colors for history items */
+          background: calc(var(--color-white) * 1);
+          /* nth-child stripe will be applied via CSS below */
+        }
+        .scan__history-list > :nth-child(odd) > .scan__history-item {
+          background: var(--color-gray-50);
+        }
+        .scan__history-list > :nth-child(even) > .scan__history-item {
+          background: var(--color-white);
         }
         .scan__history-product { font-weight: 600; color: #111111; font-size: 1rem; }
         .scan__history-date { font-size: 0.9rem; color: #666666; margin-top: 2px; }
@@ -1366,6 +1389,13 @@ export const ScanPage: React.FC = () => {
           flex-direction: column;
           gap: var(--space-1);
           box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        /* Alternating row colors for autofill preview items */
+        .scan__autofill-grid > :nth-child(odd) > .scan__autofill-item {
+          background: var(--color-gray-50);
+        }
+        .scan__autofill-grid > :nth-child(even) > .scan__autofill-item {
+          background: var(--color-white);
         }
         .scan__autofill-item--full {
           grid-column: 1 / -1;
