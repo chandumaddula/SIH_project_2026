@@ -180,7 +180,7 @@ function ViolationsPanel({ violations }: { violations: AIScanResponse['rule_engi
       {violations.map((v, i) => {
         const style = VIOLATION_SEVERITY_STYLES[v.severity] || VIOLATION_SEVERITY_STYLES['INFO'];
         return (
-          <div key={i} className="scan__violation-item" style={{ background: style.bg, borderLeftColor: style.border }}>
+          <div key={i} className="scan__violation-item" style={{ borderLeftColor: style.border }}>
             <Badge variant="error" size="sm">{style.label}</Badge>
             <span className="scan__violation-desc">{v.description}</span>
             {v.rule_id && <code className="scan__violation-rule">{v.rule_id}</code>}

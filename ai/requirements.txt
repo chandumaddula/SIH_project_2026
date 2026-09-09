@@ -9,6 +9,9 @@ fastapi>=0.110,<1
 uvicorn[standard]>=0.29
 python-multipart>=0.0.9
 pydantic>=2.5,<3
+paddlepaddle
+paddleocr
+opencv-python
 
 # --- System dependency (install via apt, not pip) ---
 # tesseract-ocr must be installed on the host:
