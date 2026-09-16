@@ -4,11 +4,10 @@
  */
 
 import { InspectionReport } from '../types/report';
-import { Inspection } from '../types/inspection';
 import { COMPLIANCE_STATUS_CONFIG } from './inspection.service';
 
 // PDF Generation using jsPDF
-export const generatePDFReport = async (report: InspectionReport, inspection: Inspection | null): Promise<Blob> => {
+export const generatePDFReport = async (report: InspectionReport): Promise<Blob> => {
   // Dynamically import jsPDF to avoid SSR issues
   const { default: jsPDF } = await import('jspdf');
 
@@ -305,8 +304,132 @@ export const generatePDFReport = async (report: InspectionReport, inspection: In
   return doc.output('blob');
 };
 
+// CSV Generation
+export const generateCSVReport = async (report: InspectionReport): Promise<Blob> => {
+  const csvRows = [];
+
+  // Header
+  csvRows.push(['INSPECTION REPORT']);
+  csvRows.push(['']);
+  csvRows.push(['Report Information']);
+  csvRows.push(['Report ID', report.id]);
+  csvRows.push(['Inspection ID', report.inspectionId]);
+  csvRows.push(['Generated Date', report.generatedAt ? new Date(report.generatedAt).toLocaleString('en-IN') : 'N/A']);
+  csvRows.push(['']);
+  csvRows.push(['Inspection Details']);
+  csvRows.push(['Product Name', report.productName]);
+  csvRows.push(['Category', report.productCategory]);
+  csvRows.push(['Manufacturer', report.productManufacturer]);
+  csvRows.push(['Packer', report.productPacker || 'N/A']);
+  csvRows.push(['Importer', report.productImporter || 'N/A']);
+  csvRows.push(['Package Type', report.productPackageType || 'N/A']);
+  csvRows.push(['Barcode', report.productBarcode || 'N/A']);
+  csvRows.push(['Inspection Date', new Date(report.inspectionDate).toLocaleDateString('en-IN')]);
+  csvRows.push(['Inspection Location', report.inspectionLocation]);
+  csvRows.push(['Officer Name', report.officerName]);
+  csvRows.push(['Office', report.office]);
+  csvRows.push(['Verification Status', report.verificationStatus]);
+  csvRows.push(['']);
+  csvRows.push(['Compliance Status']);
+  csvRows.push(['Status', report.overallCompliance]);
+  csvRows.push(['']);
+  csvRows.push(['Extracted Declarations']);
+  csvRows.push(['Field Label', 'Extracted Value', 'Confidence', 'Source']);
+
+  report.extractedDeclarations.forEach((decl) => {
+    csvRows.push([
+      decl.label,
+      decl.value || 'NOT DETECTED',
+      decl.confidence ? `${decl.confidence}%` : 'N/A',
+      decl.source || 'OCR',
+    ]);
+  });
+
+  csvRows.push(['']);
+  csvRows.push(['Compliance Findings']);
+  if (report.complianceFindings && report.complianceFindings.length > 0) {
+    csvRows.push(['Requirement', 'Extracted Value', 'Status', 'Confidence', 'Evidence', 'Officer Verification']);
+    report.complianceFindings.forEach((finding) => {
+      csvRows.push([
+        finding.requirementName,
+        finding.extractedValue || 'N/A',
+        finding.status.toUpperCase().replace('_', ' '),
+        finding.confidence ? `${finding.confidence}%` : 'N/A',
+        finding.evidence || 'N/A',
+        finding.officerVerification?.decision || 'N/A',
+      ]);
+    });
+  } else {
+    csvRows.push(['No compliance findings recorded']);
+  }
+
+  csvRows.push(['']);
+  csvRows.push(['Applicable Requirements']);
+  if (report.applicableRequirements && report.applicableRequirements.length > 0) {
+    csvRows.push(['Requirement', 'Applicability', 'Result', 'Evidence']);
+    report.applicableRequirements.forEach((req) => {
+      csvRows.push([
+        req.requirementName,
+        req.applicability,
+        req.result.toUpperCase().replace('_', ' '),
+        req.evidence || 'N/A',
+      ]);
+    });
+  } else {
+    csvRows.push(['No applicable requirements recorded']);
+  }
+
+  csvRows.push(['']);
+  csvRows.push(['Measurements']);
+  if (report.measurements && report.measurements.length > 0) {
+    csvRows.push(['Type', 'Value', 'Unit', 'Location', 'Officer', 'Timestamp']);
+    report.measurements.forEach((m) => {
+      csvRows.push([
+        m.type,
+        m.value,
+        m.unit,
+        m.location || 'N/A',
+        m.officerName,
+        new Date(m.timestamp).toLocaleString('en-IN'),
+      ]);
+    });
+  } else {
+    csvRows.push(['No measurements recorded']);
+  }
+
+  csvRows.push(['']);
+  csvRows.push(['Officer Observations']);
+  if (report.officerObservations && report.officerObservations.length > 0) {
+    csvRows.push(['S.No', 'Officer', 'Timestamp', 'Observation']);
+    report.officerObservations.forEach((obs, index) => {
+      csvRows.push([
+        index + 1,
+        obs.officerName,
+        new Date(obs.timestamp).toLocaleString('en-IN'),
+        obs.observation,
+      ]);
+    });
+  } else {
+    csvRows.push(['No officer observations recorded']);
+  }
+
+  // Join rows with commas and handle special characters
+  const csvContent = csvRows.map(row =>
+    row.map(cell => {
+      const cellStr = String(cell);
+      // Escape quotes and wrap in quotes if contains comma, quote, or newline
+      if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+        return `"${cellStr.replace(/"/g, '""')}"`;
+      }
+      return cellStr;
+    }).join(',')
+  ).join('\n');
+
+  return new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+};
+
 // Excel Generation using xlsx
-export const generateExcelReport = async (report: InspectionReport, inspection: Inspection | null): Promise<Blob> => {
+export const generateExcelReport = async (report: InspectionReport): Promise<Blob> => {
   // Dynamically import xlsx to avoid SSR issues
   const XLSX = await import('xlsx');
 
@@ -541,15 +664,21 @@ export const downloadBlob = (blob: Blob, filename: string) => {
   URL.revokeObjectURL(url);
 };
 
-export const downloadPDF = async (report: InspectionReport, inspection: Inspection | null) => {
-  const blob = await generatePDFReport(report, inspection);
+export const downloadPDF = async (report: InspectionReport) => {
+  const blob = await generatePDFReport(report);
   const filename = `Inspection_Report_${report.inspectionId}_${formatDateForFilename(new Date())}.pdf`;
   downloadBlob(blob, filename);
 };
 
-export const downloadExcel = async (report: InspectionReport, inspection: Inspection | null) => {
-  const blob = await generateExcelReport(report, inspection);
+export const downloadExcel = async (report: InspectionReport) => {
+  const blob = await generateExcelReport(report);
   const filename = `Inspection_Report_${report.inspectionId}_${formatDateForFilename(new Date())}.xlsx`;
+  downloadBlob(blob, filename);
+};
+
+export const downloadCSV = async (report: InspectionReport) => {
+  const blob = await generateCSVReport(report);
+  const filename = `Inspection_Report_${report.inspectionId}_${formatDateForFilename(new Date())}.csv`;
   downloadBlob(blob, filename);
 };
 
@@ -559,8 +688,8 @@ const formatDateForFilename = (date: Date): string => {
 };
 
 // Print PDF directly
-export const printPDF = async (report: InspectionReport, inspection: Inspection | null) => {
-  const blob = await generatePDFReport(report, inspection);
+export const printPDF = async (report: InspectionReport) => {
+  const blob = await generatePDFReport(report);
   const url = URL.createObjectURL(blob);
   const printWindow = window.open(url, '_blank');
   if (printWindow) {

@@ -1,0 +1,129 @@
+LEGAL METROLOGY AI PLATFORM — AI ARCHITECTURE & TECHNICAL STACK SPECIFICATION
+
+================================================================================
+EXECUTIVE SUMMARY
+================================================================================
+The Legal Metrology AI Compliance Platform is an automated end-to-end computer
+vision, OCR (Optical Character Recognition), structured data extraction, and
+statutory legal compliance engine. It is designed to inspect physical product
+packaging images (from live camera streams or file uploads) and evaluate compliance
+against the Legal Metrology (Packaged Commodities) Rules, 2011.
+
+================================================================================
+1. AI & COMPUTER VISION PIPELINE ARCHITECTURE
+================================================================================
+
+Pipeline Overview:
+Camera Stream -> 1. Package Detection (Edge/Contour) -> User Capture
+  -> 2. Quality Check & Preprocessing -> 3. Multi-Engine OCR (PaddleOCR/EasyOCR)
+  -> 4. Structured Extraction -> 5. Legal Compliance Engine -> Audit Trail
+
+--------------------------------------------------------------------------------
+Stage A: Live Camera Edge & Package Detection
+--------------------------------------------------------------------------------
+- Files: ai/detection/package_detector.py | ai_flow/detection/package_detector.py
+- Endpoint: POST /api/v1/ai/detect-package
+- Purpose: Evaluates live video frames continuously (every ~200-300ms) without running heavy OCR.
+- Algorithm:
+  1. Downscales camera frame (cv2.resize to max 480px width) for execution under 15ms.
+  2. Converts to grayscale, applies Gaussian blur, Canny edge detection, and dilates edges.
+  3. Evaluates contours against frame coverage ratio (15% to 95%) and rectangularity score (>= 0.55).
+  4. Returns detected status, bounding box coordinates, and visual guidance messages.
+
+--------------------------------------------------------------------------------
+Stage B1: Quality Check & Gating
+--------------------------------------------------------------------------------
+- Files: ai/image_processing/quality_check.py | ai_flow/preprocessing/utils.py
+- Quality Checks:
+  - Resolution: Rejects images below 640x480px (recommends >= 1920x1080px).
+  - Luminance & Glare: Flags underexposure (< 30) or overexposure (> 230). Flags glare if > 65% pixels > 252.
+  - Blur Detection: Edge gradient variance via Laplacian filter (flags blur if variance < 8.0).
+
+--------------------------------------------------------------------------------
+Stage B2: Preprocessing & Perspective Correction
+--------------------------------------------------------------------------------
+- Files: ai/image_processing/preprocessing.py | ai_flow/preprocessing/image_preprocessor.py
+- Operations: Auto-rotation, deskewing via Hough Line Transforms, contrast enhancement, and perspective warping of the Principal Display Panel (PDP).
+
+--------------------------------------------------------------------------------
+Stage B3: Multi-Engine OCR & Line Merging
+--------------------------------------------------------------------------------
+- Files: ai/ocr/ocr_engine.py | ai_flow/ocr/ocr_engine.py
+- OCR Engines: PaddleOCR (PP-OCRv6) primary, EasyOCR and PyTesseract fallbacks.
+- Line Merging: Groups OCR items with >= 50% vertical overlap into single-line entries.
+
+--------------------------------------------------------------------------------
+Stage B4: Structured Field Extraction & Evidence Mapping
+--------------------------------------------------------------------------------
+- Files: ai/extraction/declaration_extractor.py | ai_flow/extraction/field_extractor.py
+- Extracted Fields: product_name, mrp, net_quantity, mfg_date, exp_date, manufacturer, packer, importer, country_of_origin, consumer_care, address, batch_number, barcode, fssai_license.
+- Evidence Mapping: Links extracted fields to source_text, confidence, and visual bounding box [x, y, w, h].
+
+--------------------------------------------------------------------------------
+Stage C: Legal Metrology Compliance Rule Engine
+--------------------------------------------------------------------------------
+- Files: backend/rule_engine/compliance_engine.py | backend/app/services/scan_service.py
+- Process: Evaluates statutory applicability/exemptions (Rule 26 / Rule 3), validates declarations, MRP, net quantity, dates, font size, and placement.
+- Output: Overall status (PASS, NEEDS_REVIEW, POTENTIAL_VIOLATION), compliance score (0-100%), and audit trail.
+
+================================================================================
+2. FULL TECHNICAL STACK SPECIFICATION
+================================================================================
+
+FRONTEND STACK:
+- Framework: React 18 with TypeScript 5
+- Build Tool: Vite 5
+- Routing: React Router DOM v6
+- Styling: Vanilla CSS Design Token System (tokens.css, globals.css, components.css)
+- GIS / Mapping: Leaflet 1.9
+- Data Visualization: Recharts 2.10
+- Report Export: jsPDF 2.5 (PDF) & SheetJS / XLSX 0.18 (Excel)
+
+BACKEND STACK:
+- Framework: Python 3.10+ with FastAPI
+- ASGI Server: Uvicorn
+- Data Validation: Pydantic v2 & pydantic-settings
+- Database ORM: SQLAlchemy v2
+- Database Migrations: Alembic
+- Security & Auth: PyJWT / python-jose, passlib (bcrypt), pwdlib (argon2), python-multipart
+
+AI / ML & COMPUTER VISION STACK:
+- Computer Vision: OpenCV (opencv-python / opencv-python-headless), Pillow (PIL)
+- OCR Engines: PaddleOCR (PP-OCRv6), EasyOCR, PyTesseract
+- Document Processing: pdf2image, PyPDF2
+- Numerical Computation: NumPy
+- Statutory Engine: Custom Python Rule Engine (LegalMetrologyComplianceEngine)
+
+DATABASE & INFRASTRUCTURE STACK:
+- Production DB: PostgreSQL 16 (Docker Compose)
+- Development DB: SQLite (test.db)
+- Containerization: Docker & Docker Compose
+
+TESTING & QA STACK:
+- Test Framework: PyTest
+- Integration Testing: HTTPX & FastAPI TestClient
+
+================================================================================
+3. ADVANTAGES OF THE TECHNICAL STACK
+================================================================================
+
+AI & COMPUTER VISION LAYER:
+- High accuracy on complex packaging labels (PaddleOCR PP-OCRv6 handles small/curved text).
+- Real-time live frame detection at ~15ms per frame via classical OpenCV.
+- Tamper-evident evidence mapping with exact visual bounding box coordinates.
+- Zero hallucination guarantee through deterministic statutory rule evaluation.
+
+BACKEND INFRASTRUCTURE:
+- High concurrency and async image stream processing via FastAPI + Uvicorn.
+- Ultra-fast validation via Rust-backed Pydantic v2.
+- Enterprise persistence and schema control via SQLAlchemy v2 and Alembic.
+
+FRONTEND APPLICATION:
+- Sub-second build times and instant HMR via Vite.
+- End-to-end type safety shared between TypeScript and Pydantic schemas.
+- Low memory footprint on budget mobile devices via token-based Vanilla CSS.
+- Offline GIS tagging (Leaflet) and client-side PDF/Excel document generation.
+
+DEPLOYMENT & OPERATIONAL ADVANTAGES:
+- Single-command containerized deployment via Docker Compose.
+- Automated testing suite via PyTest and HTTPX.

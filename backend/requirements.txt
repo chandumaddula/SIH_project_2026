@@ -14,3 +14,4 @@ alembic>=1.13.0
 Pillow>=10.0.0
 PyJWT
 pwdlib[argon2]
+email-validator

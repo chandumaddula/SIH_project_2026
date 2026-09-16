@@ -36,7 +36,7 @@ import {
   addOfficerObservation,
   REPORT_STATUS_CONFIG,
 } from '../../services/report.service';
-import { COMPLIANCE_STATUS_CONFIG, getInspectionById, VERIFICATION_STATUS_CONFIG } from '../../services/inspection.service';
+import { COMPLIANCE_STATUS_CONFIG, VERIFICATION_STATUS_CONFIG } from '../../services/inspection.service';
 import { useUserStore } from '../../store';
 import { ReportDownload } from './ReportDownload';
 
@@ -166,7 +166,6 @@ export const ReportDetails: React.FC = () => {
   const statusCfg = REPORT_STATUS_CONFIG[report.status];
   const compCfg = COMPLIANCE_STATUS_CONFIG[report.overallCompliance];
   const verCfg = VERIFICATION_STATUS_CONFIG[report.verificationStatus as keyof typeof VERIFICATION_STATUS_CONFIG];
-  const inspection = report.inspectionId ? getInspectionById(report.inspectionId) : null;
 
   return (
     <div className={`page rd-page ${isPreview ? 'rd-page--preview' : ''}`}>
@@ -456,7 +455,6 @@ export const ReportDetails: React.FC = () => {
       >
         <ReportDownload
           report={report as any}
-          inspection={inspection}
           onClose={closeModal}
         />
       </Modal>

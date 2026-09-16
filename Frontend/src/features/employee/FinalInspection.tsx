@@ -178,7 +178,7 @@ export const FinalInspection: React.FC = () => {
             </CardBody>
           </Card>
 
-          <ReportDownload report={currentReport} inspection={inspection} />
+          <ReportDownload report={currentReport} />
         </>
       )}
 

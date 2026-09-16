@@ -8,22 +8,20 @@ import { Card, CardHeader, CardBody, CardTitle } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
 import { InspectionReport } from '../../types/report';
-import { Inspection } from '../../types/inspection';
-import { downloadPDF, downloadExcel, printPDF } from '../../services/reportExport.service';
+import { downloadPDF, downloadExcel, downloadCSV, printPDF } from '../../services/reportExport.service';
 
 interface ReportDownloadProps {
   report: InspectionReport;
-  inspection: Inspection | null;
   onClose?: () => void;
 }
 
-export const ReportDownload: React.FC<ReportDownloadProps> = ({ report, inspection, onClose }) => {
-  const [downloading, setDownloading] = useState<'pdf' | 'excel' | 'print' | null>(null);
+export const ReportDownload: React.FC<ReportDownloadProps> = ({ report, onClose }) => {
+  const [downloading, setDownloading] = useState<'pdf' | 'excel' | 'csv' | 'print' | null>(null);
 
   const handleDownloadPDF = async () => {
     setDownloading('pdf');
     try {
-      await downloadPDF(report, inspection);
+      await downloadPDF(report);
     } catch (error) {
       console.error('Error generating PDF:', error);
     } finally {
@@ -34,9 +32,20 @@ export const ReportDownload: React.FC<ReportDownloadProps> = ({ report, inspecti
   const handleDownloadExcel = async () => {
     setDownloading('excel');
     try {
-      await downloadExcel(report, inspection);
+      await downloadExcel(report);
     } catch (error) {
       console.error('Error generating Excel:', error);
+    } finally {
+      setTimeout(() => setDownloading(null), 1000);
+    }
+  };
+
+  const handleDownloadCSV = async () => {
+    setDownloading('csv');
+    try {
+      await downloadCSV(report);
+    } catch (error) {
+      console.error('Error generating CSV:', error);
     } finally {
       setTimeout(() => setDownloading(null), 1000);
     }
@@ -45,7 +54,7 @@ export const ReportDownload: React.FC<ReportDownloadProps> = ({ report, inspecti
   const handlePrint = async () => {
     setDownloading('print');
     try {
-      await printPDF(report, inspection);
+      await printPDF(report);
     } catch (error) {
       console.error('Error printing PDF:', error);
     } finally {
@@ -122,6 +131,26 @@ export const ReportDownload: React.FC<ReportDownloadProps> = ({ report, inspecti
               disabled={downloading !== null}
             >
               {downloading === 'excel' ? 'Generating...' : 'Download Excel'}
+            </Button>
+          </div>
+
+          <div className="report-download-option" onClick={handleDownloadCSV}>
+            <div className="report-download-option-icon report-download-option-icon--csv">
+              📑
+            </div>
+            <div className="report-download-option-content">
+              <span className="report-download-option-title">CSV Spreadsheet</span>
+              <span className="report-download-option-desc">
+                Comma-separated values format for easy import into data analysis tools, databases, and spreadsheets.
+              </span>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={downloading === 'csv'}
+              disabled={downloading !== null}
+            >
+              {downloading === 'csv' ? 'Generating...' : 'Download CSV'}
             </Button>
           </div>
 
@@ -253,6 +282,10 @@ const reportDownloadStyles = `
 
   .report-download-option-icon--print {
     background: #e3f2fd;
+  }
+
+  .report-download-option-icon--csv {
+    background: #fff3e0;
   }
 
   .report-download-option-content {
