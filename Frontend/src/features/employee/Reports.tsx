@@ -20,6 +20,7 @@ import {
   getUniqueReportCategories,
 } from '../../services/report.service';
 import { getInspectionById } from '../../services/inspection.service';
+import { downloadOverallCSV, downloadOverallExcel } from '../../services/reportExport.service';
 
 type SortField = 'id' | 'date' | 'product';
 
@@ -141,10 +142,34 @@ export const Reports: React.FC = () => {
 
   return (
     <div className="page rep-page">
-      <div className="rep-header">
+      <div className="rep-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 className="page-title">Inspection Reports</h1>
-          <p className="page-subtitle">Generate and review inspection reports.</p>
+          <p className="page-subtitle">Generate, review, and download overall inspection data.</p>
+        </div>
+        <div className="rep-header-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              downloadOverallCSV(filtered);
+              setActionMessage(`Successfully downloaded ${filtered.length} inspection record(s) as CSV.`);
+              setTimeout(() => setActionMessage(null), 3500);
+            }}
+          >
+            📥 Export CSV ({filtered.length})
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={async () => {
+              await downloadOverallExcel(filtered);
+              setActionMessage(`Successfully downloaded ${filtered.length} inspection record(s) as Excel spreadsheet.`);
+              setTimeout(() => setActionMessage(null), 3500);
+            }}
+          >
+            📊 Export Excel (.xlsx) ({filtered.length})
+          </Button>
         </div>
       </div>
 
@@ -229,7 +254,33 @@ export const Reports: React.FC = () => {
         </CardBody>
       </Card>
 
-      <div className="rep-result-count">{filtered.length} of {reports.length} report(s)</div>
+      <div className="rep-result-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0 12px', flexWrap: 'wrap', gap: '8px' }}>
+        <div className="rep-result-count">{filtered.length} of {reports.length} report(s)</div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              downloadOverallCSV(filtered);
+              setActionMessage(`Downloaded ${filtered.length} row(s) to CSV.`);
+              setTimeout(() => setActionMessage(null), 3000);
+            }}
+          >
+            📄 Quick CSV
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              await downloadOverallExcel(filtered);
+              setActionMessage(`Downloaded ${filtered.length} row(s) to Excel.`);
+              setTimeout(() => setActionMessage(null), 3000);
+            }}
+          >
+            📊 Quick Excel
+          </Button>
+        </div>
+      </div>
 
       {/* Table */}
       {filtered.length === 0 ? (

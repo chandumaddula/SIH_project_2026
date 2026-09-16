@@ -698,3 +698,161 @@ export const printPDF = async (report: InspectionReport) => {
     };
   }
 };
+
+// ============================================================================
+// Overall Inspections Bulk Data Export (Row and Column wise CSV & Excel)
+// ============================================================================
+
+export const generateOverallCSV = (reports: InspectionReport[]): Blob => {
+  const headers = [
+    'S.No',
+    'Report ID',
+    'Inspection ID',
+    'Product Name',
+    'Category',
+    'Manufacturer',
+    'Packer',
+    'Importer',
+    'Package Type',
+    'Barcode',
+    'Inspection Location',
+    'Inspection Date',
+    'Inspection Time',
+    'Officer Name',
+    'Office',
+    'Report Status',
+    'Overall Compliance',
+    'Generated Date',
+    'Notes'
+  ];
+
+  const rows = reports.map((r, index) => [
+    index + 1,
+    r.id,
+    r.inspectionId,
+    r.productName,
+    r.productCategory,
+    r.productManufacturer,
+    r.productPacker || 'N/A',
+    r.productImporter || 'N/A',
+    r.productPackageType || 'N/A',
+    r.productBarcode || 'N/A',
+    r.inspectionLocation,
+    r.inspectionDate,
+    r.inspectionTime || 'N/A',
+    r.officerName,
+    r.office,
+    r.status,
+    r.overallCompliance ? r.overallCompliance.toUpperCase() : 'N/A',
+    r.generatedAt ? new Date(r.generatedAt).toLocaleString('en-IN') : 'N/A',
+    r.notes || ''
+  ]);
+
+  const csvRows = [headers, ...rows];
+
+  const csvContent = '\uFEFF' + csvRows.map(row =>
+    row.map(cell => {
+      const cellStr = String(cell ?? '');
+      if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+        return `"${cellStr.replace(/"/g, '""')}"`;
+      }
+      return cellStr;
+    }).join(',')
+  ).join('\n');
+
+  return new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+};
+
+export const generateOverallExcel = async (reports: InspectionReport[]): Promise<Blob> => {
+  const XLSX = await import('xlsx');
+  const wb = XLSX.utils.book_new();
+
+  const headers = [
+    'S.No',
+    'Report ID',
+    'Inspection ID',
+    'Product Name',
+    'Category',
+    'Manufacturer',
+    'Packer',
+    'Importer',
+    'Package Type',
+    'Barcode',
+    'Inspection Location',
+    'Inspection Date',
+    'Inspection Time',
+    'Officer Name',
+    'Office',
+    'Report Status',
+    'Overall Compliance',
+    'Generated Date',
+    'Notes'
+  ];
+
+  const dataRows = reports.map((r, idx) => [
+    idx + 1,
+    r.id,
+    r.inspectionId,
+    r.productName,
+    r.productCategory,
+    r.productManufacturer,
+    r.productPacker || 'N/A',
+    r.productImporter || 'N/A',
+    r.productPackageType || 'N/A',
+    r.productBarcode || 'N/A',
+    r.inspectionLocation,
+    r.inspectionDate,
+    r.inspectionTime || 'N/A',
+    r.officerName,
+    r.office,
+    r.status,
+    r.overallCompliance ? r.overallCompliance.toUpperCase() : 'N/A',
+    r.generatedAt ? new Date(r.generatedAt).toLocaleString('en-IN') : 'N/A',
+    r.notes || ''
+  ]);
+
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['LEGAL METROLOGY COMPLIANCE SYSTEM — OVERALL INSPECTION REPORT DATA'],
+    [`Generated On: ${new Date().toLocaleString('en-IN')} | Total Records: ${reports.length}`],
+    [''],
+    headers,
+    ...dataRows
+  ]);
+
+  ws['!cols'] = [
+    { wch: 6 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 30 },
+    { wch: 20 },
+    { wch: 25 },
+    { wch: 20 },
+    { wch: 20 },
+    { wch: 15 },
+    { wch: 18 },
+    { wch: 25 },
+    { wch: 15 },
+    { wch: 15 },
+    { wch: 20 },
+    { wch: 20 },
+    { wch: 18 },
+    { wch: 20 },
+    { wch: 22 },
+    { wch: 30 }
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Overall Inspections Data');
+
+  const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  return new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+};
+
+export const downloadOverallCSV = (reports: InspectionReport[], filename = `overall_inspections_${formatDateForFilename(new Date())}.csv`) => {
+  const blob = generateOverallCSV(reports);
+  downloadBlob(blob, filename);
+};
+
+export const downloadOverallExcel = async (reports: InspectionReport[], filename = `overall_inspections_${formatDateForFilename(new Date())}.xlsx`) => {
+  const blob = await generateOverallExcel(reports);
+  downloadBlob(blob, filename);
+};
