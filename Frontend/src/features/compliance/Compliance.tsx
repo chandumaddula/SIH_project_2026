@@ -165,19 +165,31 @@ export const Compliance: React.FC = () => {
 
   return (
     <div className="page" style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-      <div className="page-header" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="page-header" style={{
+        marginBottom: '24px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+        padding: '24px 28px',
+        borderRadius: '12px',
+        boxShadow: '0 4px 14px rgba(0, 0, 0, 0.2)',
+        borderLeft: '5px solid #2563eb',
+        flexWrap: 'wrap',
+        gap: '16px'
+      }}>
         <div>
-          <h1 className="page-title" style={{ fontSize: '28px', fontWeight: 700, color: '#1e293b' }}>
+          <h1 className="page-title" style={{ fontSize: '28px', fontWeight: 700, color: '#ffffff', margin: 0, letterSpacing: '0.2px' }}>
             Legal Metrology Compliance Dashboard
           </h1>
-          <p className="page-subtitle" style={{ color: '#64748b' }}>
+          <p className="page-subtitle" style={{ color: '#ffffff', fontSize: '14px', margin: '6px 0 0', fontWeight: 400, opacity: 0.95 }}>
             Explainable Rule Engine audit trails, visual evidence verification & officer review portal
           </p>
         </div>
 
         {/* Phase 8 Download & Notice Action Buttons */}
         <div style={{ display: 'flex', gap: '10px' }}>
-          <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
+          <Button variant="outline" size="sm" onClick={handleDownloadPDF} style={{ color: '#ffffff', borderColor: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.1)' }}>
             📄 Download Inspection PDF
           </Button>
           <Button variant="primary" size="sm" onClick={handleGenerateNotice}>
@@ -187,17 +199,17 @@ export const Compliance: React.FC = () => {
       </div>
 
       {loading || !report ? (
-        <div style={{ padding: '48px', textAlign: 'center', color: '#64748b' }}>
+        <div style={{ padding: '48px', textAlign: 'center', color: '#ffffff' }}>
           Loading Phase 7 Rule Engine findings...
         </div>
       ) : (
         <>
           {/* Summary Stat Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-            <Card accentColor="primary">
+            <Card accentColor="primary" style={{ background: '#1e293b', borderColor: '#334155' }}>
               <CardBody style={{ padding: '16px', textAlign: 'center' }}>
-                <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>OVERALL SCORE</span>
-                <div style={{ fontSize: '32px', fontWeight: 800, color: '#2563eb', marginTop: '4px' }}>
+                <span style={{ fontSize: '13px', color: '#ffffff', fontWeight: 700, letterSpacing: '0.5px' }}>OVERALL SCORE</span>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#60a5fa', marginTop: '4px' }}>
                   {report.compliance_score}%
                 </div>
                 <Badge variant={report.overall_status === 'PASS' ? 'success' : (report.overall_status === 'REVIEW_REQUIRED' ? 'warning' : 'error')}>
@@ -206,43 +218,43 @@ export const Compliance: React.FC = () => {
               </CardBody>
             </Card>
 
-            <Card accentColor="primary">
+            <Card accentColor="primary" style={{ background: '#1e293b', borderColor: '#334155' }}>
               <CardBody style={{ padding: '16px', textAlign: 'center' }}>
-                <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>TOTAL CHECKS</span>
-                <div style={{ fontSize: '32px', fontWeight: 800, color: '#1e293b', marginTop: '4px' }}>
+                <span style={{ fontSize: '13px', color: '#ffffff', fontWeight: 700, letterSpacing: '0.5px' }}>TOTAL CHECKS</span>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#ffffff', marginTop: '4px' }}>
                   {report.summary.total_checks}
                 </div>
-                <span style={{ fontSize: '12px', color: '#64748b' }}>Authoritative Rules</span>
+                <span style={{ fontSize: '12px', color: '#ffffff', opacity: 0.9 }}>Authoritative Rules</span>
               </CardBody>
             </Card>
 
-            <Card accentColor="success">
+            <Card accentColor="success" style={{ background: '#1e293b', borderColor: '#334155' }}>
               <CardBody style={{ padding: '16px', textAlign: 'center' }}>
-                <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>PASSED</span>
-                <div style={{ fontSize: '32px', fontWeight: 800, color: '#16a34a', marginTop: '4px' }}>
+                <span style={{ fontSize: '13px', color: '#ffffff', fontWeight: 700, letterSpacing: '0.5px' }}>PASSED</span>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#4ade80', marginTop: '4px' }}>
                   {report.summary.passed}
                 </div>
-                <span style={{ fontSize: '12px', color: '#16a34a' }}>Compliant Rules</span>
+                <span style={{ fontSize: '12px', color: '#4ade80', fontWeight: 600 }}>Compliant Rules</span>
               </CardBody>
             </Card>
 
-            <Card accentColor="warning">
+            <Card accentColor="warning" style={{ background: '#1e293b', borderColor: '#334155' }}>
               <CardBody style={{ padding: '16px', textAlign: 'center' }}>
-                <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>REVIEW REQUIRED</span>
-                <div style={{ fontSize: '32px', fontWeight: 800, color: '#d97706', marginTop: '4px' }}>
+                <span style={{ fontSize: '13px', color: '#ffffff', fontWeight: 700, letterSpacing: '0.5px' }}>REVIEW REQUIRED</span>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#fbbf24', marginTop: '4px' }}>
                   {report.summary.review_required}
                 </div>
-                <span style={{ fontSize: '12px', color: '#d97706' }}>Officer Review</span>
+                <span style={{ fontSize: '12px', color: '#fbbf24', fontWeight: 600 }}>Officer Review</span>
               </CardBody>
             </Card>
 
-            <Card accentColor="error">
+            <Card accentColor="error" style={{ background: '#1e293b', borderColor: '#334155' }}>
               <CardBody style={{ padding: '16px', textAlign: 'center' }}>
-                <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>POTENTIAL VIOLATIONS</span>
-                <div style={{ fontSize: '32px', fontWeight: 800, color: '#dc2626', marginTop: '4px' }}>
+                <span style={{ fontSize: '13px', color: '#ffffff', fontWeight: 700, letterSpacing: '0.5px' }}>POTENTIAL VIOLATIONS</span>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: '#f87171', marginTop: '4px' }}>
                   {report.summary.potential_violations}
                 </div>
-                <span style={{ fontSize: '12px', color: '#dc2626' }}>Non-Compliant</span>
+                <span style={{ fontSize: '12px', color: '#f87171', fontWeight: 600 }}>Non-Compliant</span>
               </CardBody>
             </Card>
           </div>
@@ -256,11 +268,12 @@ export const Compliance: React.FC = () => {
                 style={{
                   padding: '8px 16px',
                   borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  background: activeTab === tab ? '#2563eb' : '#ffffff',
-                  color: activeTab === tab ? '#ffffff' : '#334155',
+                  border: '1px solid #475569',
+                  background: activeTab === tab ? '#2563eb' : '#1e293b',
+                  color: '#ffffff',
                   fontWeight: 600,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  boxShadow: activeTab === tab ? '0 2px 8px rgba(37, 99, 235, 0.4)' : 'none'
                 }}
               >
                 {tab === 'all' ? 'All Checks' : tab.replace('_', ' ')}
@@ -275,7 +288,9 @@ export const Compliance: React.FC = () => {
                 <Card
                   key={check.rule_id}
                   style={{
-                    borderLeft: `4px solid ${check.status === 'PASS' ? '#16a34a' : (check.status === 'REVIEW_REQUIRED' ? '#f59e0b' : '#dc2626')}`,
+                    background: '#1e293b',
+                    borderColor: '#334155',
+                    borderLeft: `5px solid ${check.status === 'PASS' ? '#16a34a' : (check.status === 'REVIEW_REQUIRED' ? '#f59e0b' : '#dc2626')}`,
                     cursor: 'pointer'
                   }}
                   onClick={() => setSelectedCheck(check)}
@@ -283,10 +298,10 @@ export const Compliance: React.FC = () => {
                   <CardBody style={{ padding: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                       <div>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                           {check.field.replace('_', ' ')} ({check.rule_id})
                         </span>
-                        <h4 style={{ fontSize: '16px', fontWeight: 700, margin: '2px 0', color: '#0f172a' }}>
+                        <h4 style={{ fontSize: '16px', fontWeight: 700, margin: '2px 0', color: '#ffffff' }}>
                           {check.legal_clause}
                         </h4>
                       </div>
@@ -295,11 +310,11 @@ export const Compliance: React.FC = () => {
                       </Badge>
                     </div>
 
-                    <p style={{ fontSize: '14px', color: '#334155', marginBottom: '8px' }}>{check.message}</p>
+                    <p style={{ fontSize: '14px', color: '#ffffff', marginBottom: '8px', lineHeight: 1.5 }}>{check.message}</p>
 
                     {check.extracted_value && (
-                      <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '13px' }}>
-                        <strong>Detected Value:</strong> <code style={{ color: '#0284c7' }}>{check.extracted_value}</code>
+                      <div style={{ background: '#0f172a', padding: '8px 12px', borderRadius: '6px', border: '1px solid #334155', fontSize: '13px', color: '#ffffff' }}>
+                        <strong style={{ color: '#ffffff' }}>Detected Value:</strong> <code style={{ color: '#38bdf8', fontWeight: 700 }}>{check.extracted_value}</code>
                       </div>
                     )}
                   </CardBody>
@@ -309,49 +324,49 @@ export const Compliance: React.FC = () => {
 
             {/* Evidence & Officer Review Sidebar */}
             {selectedCheck && (
-              <Card style={{ position: 'sticky', top: '20px', height: 'fit-content' }}>
-                <CardHeader>
+              <Card style={{ position: 'sticky', top: '20px', height: 'fit-content', background: '#1e293b', borderColor: '#334155' }}>
+                <CardHeader style={{ background: '#0f172a', borderBottom: '1px solid #334155' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <CardTitle>Traceable Evidence Details</CardTitle>
-                    <button onClick={() => setSelectedCheck(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+                    <CardTitle style={{ color: '#ffffff' }}>Traceable Evidence Details</CardTitle>
+                    <button onClick={() => setSelectedCheck(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 'bold', color: '#ffffff', fontSize: '16px' }}>✕</button>
                   </div>
                 </CardHeader>
                 <CardBody style={{ padding: '16px' }}>
                   <div style={{ marginBottom: '16px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>RULE REFERENCE</label>
-                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b' }}>{selectedCheck.legal_clause}</div>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#38bdf8', letterSpacing: '0.5px' }}>RULE REFERENCE</label>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#ffffff', marginTop: '2px' }}>{selectedCheck.legal_clause}</div>
                   </div>
 
                   <div style={{ marginBottom: '16px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>AI OCR CONFIDENCE SCORE</label>
-                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#2563eb' }}>{(selectedCheck.confidence * 100).toFixed(1)}%</div>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#38bdf8', letterSpacing: '0.5px' }}>AI OCR CONFIDENCE SCORE</label>
+                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#60a5fa', marginTop: '2px' }}>{(selectedCheck.confidence * 100).toFixed(1)}%</div>
                   </div>
 
                   {selectedCheck.evidence && (
                     <div style={{ marginBottom: '16px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>EVIDENCE BOUNDING BOX & SNIPPET</label>
-                      <div style={{ background: '#0f172a', color: '#38bdf8', padding: '12px', borderRadius: '6px', fontSize: '13px', fontFamily: 'monospace', marginTop: '4px' }}>
-                        <div>BBOX: [{selectedCheck.evidence.bounding_box.join(', ')}]</div>
-                        <div>RAW OCR: "{selectedCheck.evidence.ocr_raw_snippet}"</div>
+                      <label style={{ fontSize: '12px', fontWeight: 700, color: '#38bdf8', letterSpacing: '0.5px' }}>EVIDENCE BOUNDING BOX & SNIPPET</label>
+                      <div style={{ background: '#0f172a', color: '#38bdf8', padding: '12px', borderRadius: '6px', fontSize: '13px', fontFamily: 'monospace', marginTop: '4px', border: '1px solid #334155' }}>
+                        <div style={{ color: '#ffffff' }}>BBOX: [{selectedCheck.evidence.bounding_box.join(', ')}]</div>
+                        <div style={{ color: '#38bdf8', marginTop: '4px' }}>RAW OCR: "{selectedCheck.evidence.ocr_raw_snippet}"</div>
                       </div>
                     </div>
                   )}
 
-                  <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '16px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', display: 'block', marginBottom: '8px' }}>OFFICER REVIEW DECISION</label>
+                  <div style={{ borderTop: '1px solid #334155', paddingTop: '16px', marginTop: '16px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#38bdf8', display: 'block', marginBottom: '8px', letterSpacing: '0.5px' }}>OFFICER REVIEW DECISION</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <Button variant="primary" size="sm" onClick={() => handleOfficerReview('APPROVED')}>
                         ✓ Approve Compliance
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleOfficerReview('NOTICE_ISSUED')}>
+                      <Button variant="outline" size="sm" onClick={() => handleOfficerReview('NOTICE_ISSUED')} style={{ color: '#ffffff', borderColor: '#cbd5e1' }}>
                         ⚠️ Issue Statutory Legal Notice
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleOfficerReview('PENALIZED')}>
+                      <Button variant="ghost" size="sm" onClick={() => handleOfficerReview('PENALIZED')} style={{ color: '#f87171' }}>
                         ✕ Flag Violation & Penalty
                       </Button>
                     </div>
                     {officerDecision && (
-                      <div style={{ marginTop: '12px', padding: '8px', background: '#f0fdf4', color: '#166534', borderRadius: '4px', fontSize: '13px', fontWeight: 600 }}>
+                      <div style={{ marginTop: '12px', padding: '8px 12px', background: 'rgba(34, 197, 94, 0.2)', color: '#86efac', borderRadius: '4px', fontSize: '13px', fontWeight: 600, border: '1px solid rgba(34, 197, 94, 0.4)' }}>
                         Recorded Decision: {officerDecision}
                       </div>
                     )}

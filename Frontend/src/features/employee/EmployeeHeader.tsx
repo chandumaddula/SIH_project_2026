@@ -135,15 +135,16 @@ export const EmployeeHeader: React.FC<EmployeeHeaderProps> = ({
           left: var(--sidebar-width);
           right: 0;
           height: var(--header-height);
-          background: linear-gradient(135deg, var(--color-navy-900) 0%, var(--color-navy-800) 100%);
-          color: var(--color-white);
+          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+          color: #ffffff;
           display: flex;
           align-items: center;
           justify-content: space-between;
           padding: 0 var(--space-6);
           z-index: calc(var(--z-sticky) + 1);
-          box-shadow: var(--shadow-sm);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
           transition: left 0.3s ease;
+          border-bottom: 2px solid var(--color-gold-500, #d4a853);
         }
 
         .emp-header__left {
@@ -154,9 +155,9 @@ export const EmployeeHeader: React.FC<EmployeeHeaderProps> = ({
 
         .emp-header__hamburger {
           display: none;
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          color: var(--color-white);
+          background: rgba(255, 255, 255, 0.12);
+          border: 1px solid rgba(255, 255, 255, 0.25);
+          color: #ffffff;
           padding: var(--space-2);
           border-radius: var(--radius-md);
           cursor: pointer;
@@ -166,7 +167,7 @@ export const EmployeeHeader: React.FC<EmployeeHeaderProps> = ({
         }
 
         .emp-header__hamburger:hover {
-          background: rgba(255, 255, 255, 0.2);
+          background: rgba(255, 255, 255, 0.25);
         }
 
         .emp-header__title-block {
@@ -177,15 +178,17 @@ export const EmployeeHeader: React.FC<EmployeeHeaderProps> = ({
 
         .emp-header__title {
           font-size: var(--font-size-lg);
-          font-weight: var(--font-weight-semibold);
-          color: var(--color-white);
+          font-weight: var(--font-weight-bold);
+          color: #ffffff;
           margin: 0;
           line-height: 1.2;
+          letter-spacing: 0.3px;
         }
 
         .emp-header__subtitle {
           font-size: var(--font-size-xs);
-          color: rgba(255, 255, 255, 0.7);
+          color: #cbd5e1;
+          font-weight: var(--font-weight-medium);
           margin: 0;
         }
 
@@ -205,48 +208,54 @@ export const EmployeeHeader: React.FC<EmployeeHeaderProps> = ({
         .emp-header__user-name {
           font-size: var(--font-size-sm);
           font-weight: var(--font-weight-semibold);
-          color: var(--color-white);
+          color: #ffffff;
         }
 
         .emp-header__user-meta {
           font-size: var(--font-size-xs);
-          color: rgba(255, 255, 255, 0.7);
+          color: #94a3b8;
           margin-top: 2px;
         }
 
         .emp-header__user-sep {
           margin: 0 4px;
+          color: #64748b;
         }
 
         .emp-header__id-badge {
-          background: rgba(212, 168, 83, 0.2);
-          color: var(--color-gold-400);
-          border: 1px solid rgba(212, 168, 83, 0.4);
+          background: rgba(234, 179, 8, 0.18);
+          color: #fde047;
+          border: 1px solid rgba(234, 179, 8, 0.5);
           padding: var(--space-1) var(--space-3);
           border-radius: var(--radius-full);
           font-size: var(--font-size-xs);
-          font-weight: var(--font-weight-semibold);
+          font-weight: var(--font-weight-bold);
+          font-family: var(--font-family-mono);
           letter-spacing: 0.5px;
           white-space: nowrap;
+          box-shadow: 0 0 8px rgba(234, 179, 8, 0.15);
         }
 
         .emp-header__signout {
           display: flex;
           align-items: center;
           gap: var(--space-2);
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          color: var(--color-white);
+          background: rgba(239, 68, 68, 0.18);
+          border: 1px solid rgba(239, 68, 68, 0.4);
+          color: #fecaca;
           padding: var(--space-2) var(--space-4);
           border-radius: var(--radius-md);
           cursor: pointer;
           font-size: var(--font-size-sm);
-          font-weight: var(--font-weight-medium);
-          transition: background-color var(--transition-fast);
+          font-weight: var(--font-weight-semibold);
+          transition: all var(--transition-fast);
         }
 
         .emp-header__signout:hover {
-          background: rgba(255, 255, 255, 0.2);
+          background: #dc2626;
+          color: #ffffff;
+          border-color: #dc2626;
+          box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
         }
 
         .emp-header__signout-text {
@@ -260,22 +269,26 @@ export const EmployeeHeader: React.FC<EmployeeHeaderProps> = ({
           justify-content: center;
           width: 40px;
           height: 40px;
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          background: rgba(255, 255, 255, 0.12);
+          border: 1px solid rgba(255, 255, 255, 0.25);
           border-radius: var(--radius-md);
-          color: var(--color-white);
+          color: #ffffff;
           cursor: pointer;
-          transition: background-color var(--transition-fast);
+          transition: all var(--transition-fast);
         }
-        .emp-header__bell:hover { background: rgba(255, 255, 255, 0.2); }
+        .emp-header__bell:hover {
+          background: rgba(255, 255, 255, 0.25);
+          transform: translateY(-1px);
+        }
         .emp-header__bell-badge {
           position: absolute;
-          top: 4px;
-          right: 4px;
+          top: -3px;
+          right: -3px;
           min-width: 18px;
           height: 18px;
-          background: var(--color-error-500);
-          color: var(--color-white);
+          background: #ef4444;
+          color: #ffffff;
+          border: 2px solid #0f172a;
           border-radius: var(--radius-full);
           font-size: 10px;
           font-weight: var(--font-weight-bold);
