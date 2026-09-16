@@ -184,8 +184,8 @@ const ComplaintCard: React.FC<{ complaint: RecentComplaint; onView: () => void; 
    Action Item Card
    ========================================================================== */
 
-const ActionItemRow: React.FC<{ item: ActionItem; onOpen: () => void }> = ({ item, onOpen }) => (
-  <div className={`emp-home__action-item emp-home__action-item--${item.priority}`}>
+const ActionItemRow: React.FC<{ item: ActionItem; index: number; onOpen: () => void }> = ({ item, index, onOpen }) => (
+  <div className={`emp-home__action-item emp-home__action-item--${item.priority} ${index % 2 === 0 ? 'emp-home__action-item--even' : 'emp-home__action-item--odd'}`}>
     <div className="emp-home__action-item-bullet" aria-hidden="true" />
     <div className="emp-home__action-item-body">
       <div className="emp-home__action-item-top">
@@ -194,13 +194,13 @@ const ActionItemRow: React.FC<{ item: ActionItem; onOpen: () => void }> = ({ ite
         </Badge>
         <span className="emp-home__action-item-ref">{item.referenceId}</span>
         {item.dueDate && (
-          <span className="emp-home__action-item-due">Due: {item.dueDate}</span>
+          <span className="emp-home__action-item-due">📅 Due: {item.dueDate}</span>
         )}
       </div>
       <h4 className="emp-home__action-item-title">{item.title}</h4>
       <p className="emp-home__action-item-desc">{item.description}</p>
     </div>
-    <Button variant="ghost" size="sm" onClick={onOpen}>Open</Button>
+    <Button variant="primary" size="sm" onClick={onOpen}>Open</Button>
   </div>
 );
 
@@ -641,10 +641,11 @@ export const EmployeeHome: React.FC = () => {
               />
             ) : (
               <div className="emp-home__action-list">
-                {actions.map((item) => (
+                {actions.map((item, index) => (
                   <ActionItemRow
                     key={item.id}
                     item={item}
+                    index={index}
                     onOpen={() => handleActionOpen(item)}
                   />
                 ))}
@@ -1038,18 +1039,54 @@ export const EmployeeHome: React.FC = () => {
         }
         .emp-home__action-item {
           display: flex;
-          gap: var(--space-3);
+          gap: var(--space-4);
           align-items: flex-start;
-          padding: var(--space-4);
-          background: var(--color-white);
+          padding: var(--space-4) var(--space-5);
+          border-radius: var(--radius-lg);
           border: 1px solid var(--color-gray-200);
-          border-left: 4px solid var(--color-gray-300);
-          border-radius: var(--radius-md);
+          border-left: 5px solid var(--color-gray-400);
+          box-shadow: var(--shadow-sm);
+          transition: transform var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
         }
-        .emp-home__action-item--high { border-left-color: var(--color-error-600); background: #fff7f6; }
-        .emp-home__action-item--medium { border-left-color: var(--color-warning-600); background: #fff9f0; }
-        .emp-home__action-item--normal { border-left-color: var(--color-info-600); background: #f5fafe; }
-        .emp-home__action-item-body { flex: 1; }
+        .emp-home__action-item:hover {
+          box-shadow: var(--shadow-md);
+          transform: translateY(-1px);
+        }
+
+        /* Dynamic Alternating & High Contrast Priority Row Backgrounds */
+        .emp-home__action-item--even {
+          background: var(--color-navy-50);
+        }
+        .emp-home__action-item--odd {
+          background: var(--color-white);
+        }
+
+        .emp-home__action-item--high.emp-home__action-item--even {
+          border-left-color: var(--color-error-600);
+          background: var(--color-error-100);
+        }
+        .emp-home__action-item--high.emp-home__action-item--odd {
+          border-left-color: var(--color-error-600);
+          background: var(--color-white);
+        }
+        .emp-home__action-item--medium.emp-home__action-item--even {
+          border-left-color: var(--color-warning-600);
+          background: var(--color-warning-100);
+        }
+        .emp-home__action-item--medium.emp-home__action-item--odd {
+          border-left-color: var(--color-warning-600);
+          background: var(--color-white);
+        }
+        .emp-home__action-item--normal.emp-home__action-item--even {
+          border-left-color: var(--color-info-600);
+          background: var(--color-info-100);
+        }
+        .emp-home__action-item--normal.emp-home__action-item--odd {
+          border-left-color: var(--color-info-600);
+          background: var(--color-white);
+        }
+
+        .emp-home__action-item-body { flex: 1; min-width: 0; }
         .emp-home__action-item-top {
           display: flex;
           align-items: center;
@@ -1060,29 +1097,39 @@ export const EmployeeHome: React.FC = () => {
         .emp-home__action-item-ref {
           font-family: var(--font-family-mono);
           font-size: var(--font-size-xs);
+          font-weight: var(--font-weight-semibold);
           color: var(--color-navy-700);
+          background: var(--color-navy-50);
+          padding: 2px 8px;
+          border-radius: var(--radius-sm);
+          border: 1px solid var(--color-gray-200);
         }
         .emp-home__action-item-due {
           font-size: var(--font-size-xs);
-          color: var(--color-gray-600);
+          font-weight: var(--font-weight-semibold);
+          color: var(--color-error-600);
+          background: var(--color-error-100);
+          padding: 2px 8px;
+          border-radius: var(--radius-sm);
         }
         .emp-home__action-item-title {
           font-size: var(--font-size-base);
-          font-weight: var(--font-weight-semibold);
+          font-weight: var(--font-weight-bold);
           color: var(--color-navy-900);
           margin: 0 0 var(--space-1);
         }
         .emp-home__action-item-desc {
           font-size: var(--font-size-sm);
-          color: var(--color-gray-700);
+          color: var(--color-gray-800);
           margin: 0;
+          line-height: var(--line-height-normal);
         }
         .emp-home__action-item-bullet {
-          width: 6px;
-          height: 6px;
+          width: 8px;
+          height: 8px;
           border-radius: 50%;
-          background: var(--color-gray-400);
-          margin-top: 10px;
+          background: var(--color-navy-500);
+          margin-top: 6px;
           flex-shrink: 0;
         }
 
